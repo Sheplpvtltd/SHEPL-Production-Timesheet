@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // STAGE 1 — TRIAL RULES (use while testing the prototype)
+    // The prototype stores each page's data as one document in the
+    // "dashboard" collection. These rules require every request to
+    // come from an authenticated session.
+    // To trial quickly you may temporarily use Firebase "test mode",
+    // but switch to these (or stricter) rules before real use.
+    // ============================================================
+    match /dashboard/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ============================================================
+    // STAGE 2 — PRODUCTION RULES (for the full Firebase build with
+    // Firebase Authentication + custom claims, per the development
+    // plan). Role and department travel on the auth token:
+    //   role: "admin" | "user"
+    //   departmentId: string | null
+    // ============================================================
+    // function isAdmin() { return request.auth != null && request.auth.token.role == 'admin'; }
+    // function myDept()  { return request.auth.token.departmentId; }
+    //
+    // match /employees/{id}   { allow read: if isAdmin() || resource.data.departmentId == myDept();
+    //                           allow write: if isAdmin(); }
+    // match /projects/{id}    { allow read: if request.auth != null; allow write: if isAdmin(); }
+    // match /timesheets/{id}  { allow read: if isAdmin() || resource.data.departmentId == myDept();
+    //                           allow create: if isAdmin() || request.resource.data.departmentId == myDept();
+    //                           allow update, delete: if isAdmin(); }
+    // match /departments/{id} { allow read: if request.auth != null; allow write: if isAdmin(); }
+    // match /users/{uid}      { allow read: if isAdmin() || request.auth.uid == uid; allow write: if isAdmin(); }
+    // match /dropdowns/{id}   { allow read: if request.auth != null; allow write: if isAdmin(); }
+    // match /activityLogs/{id}{ allow read: if isAdmin(); allow write: if false; } // Cloud Functions only
+    // match /backups/{id}     { allow read: if isAdmin(); allow write: if false; } // Cloud Functions only
+  }
+}
