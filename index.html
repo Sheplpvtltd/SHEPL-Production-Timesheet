@@ -185,6 +185,7 @@
    Excel backup download · Departments with page & column
    permissions · Dropdown master page · Excel tab order
    ========================================================= */
+const APP_VERSION = '4.3';
 const LOGO_B64 = "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";
 
 /* =========================================================
@@ -928,7 +929,7 @@ function renderShell(innerHtml, title, sub){
       <div class="sidebar">
         <div class="sidebar-brand"><img src="data:image/gif;base64,${LOGO_B64}" alt="SHEPL"></div>
         <div class="nav">${nav}</div>
-        <div class="sidebar-foot"><span class="backup-dot"></span>${FB_MODE?'🔥 Firebase — live sync':'💻 Local mode — tab sync'}<br>Auto-backup: every 30s · Last: <span id="lastBackupLbl">${lastB}</span></div>
+        <div class="sidebar-foot"><span class="backup-dot"></span>${FB_MODE?'🔥 Firebase — live sync':'💻 Local mode — tab sync'} · <b>v${APP_VERSION}</b><br>Auto-backup: every 30s · Last: <span id="lastBackupLbl">${lastB}</span></div>
       </div>
       <div class="main">
         <div class="topbar">
@@ -1388,6 +1389,11 @@ function renderBackup(){
       <button class="btn btn-ghost" onclick="runBackup().then(()=>{toast('Backup saved'); renderApp();})">🔄 Run Backup Now</button>
     </div>
     <div class="card">
+      <h2>🩺 Data Doctor</h2>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">Checks every timesheet cloud page one by one and reports what is really stored — months, pages, and actual row counts versus what the counter claims. Use this whenever the numbers on screen look wrong.</p>
+      <button class="btn btn-primary" onclick="runDataDoctor()">🩺 Run Data Doctor</button>
+    </div>
+    <div class="card">
       <h2>ℹ️ How data safety works</h2>
       <p style="font-size:13px;color:var(--muted);line-height:1.6;margin:0;">
       Every change is saved instantly the moment it happens. Separately, a full snapshot of all pages is taken every 30 seconds.
@@ -1395,6 +1401,44 @@ function renderBackup(){
       Nothing is lost on refresh, sign-out, or closing the browser.</p>
     </div>`;
   renderShell(html, '💾 Backup & Export', 'Automatic 30-second backups and full Excel download');
+}
+
+async function runDataDoctor(){
+  if(!isAdmin()){ toast('Admin only', true); return; }
+  toast('🩺 Checking every cloud page — this reads the whole archive, please wait…');
+  await tsLoadManifest(true);
+  const months = Object.keys(TS.manifest.parts).sort();
+  const rowsOut = [];
+  let actualTotal = 0, expectedTotal = 0, missingDocs = 0;
+  for(const m of months){
+    const n = TS.manifest.parts[m]||0;
+    let rows = 0; const miss = [];
+    for(let i=0;i<n;i++){
+      const v = await storeGet(partId(m,i));
+      if(v==null){ miss.push('p'+i); missingDocs++; }
+      else { try{ rows += JSON.parse(v).length; }catch(e){ miss.push('p'+i+'(corrupt)'); missingDocs++; } }
+    }
+    const exp = TS.manifest.counts[m]||0;
+    actualTotal += rows; expectedTotal += exp;
+    rowsOut.push(`<tr${rows!==exp||miss.length?' style="background:var(--danger-bg);"':''}><td>${m}</td><td>${n}</td><td>${rows.toLocaleString()}</td><td>${exp.toLocaleString()}</td><td>${miss.join(', ')||'—'}</td></tr>`);
+  }
+  const verdict = (missingDocs===0 && actualTotal===expectedTotal)
+    ? `<div class="ok-note">✅ HEALTHY — all ${months.length} months present, ${actualTotal.toLocaleString()} rows really stored, counter matches exactly.</div>`
+    : `<div class="err-list">⚠️ MISMATCH — counter claims ${expectedTotal.toLocaleString()} rows but the pages actually hold ${actualTotal.toLocaleString()}${missingDocs?`, with ${missingDocs} page(s) missing or unreadable`:''}. The fix: run the Bulk Upload of your full Excel again — rows already stored are skipped as duplicates, only the missing ones get written.</div>`;
+  document.getElementById('modalRoot')?.remove();
+  const div = document.createElement('div'); div.id='modalRoot';
+  div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
+    <div class="modal" style="max-width:680px;">
+      <h3>🩺 Data Doctor Report — v${APP_VERSION}</h3>
+      ${verdict}
+      <div class="table-scroll" style="max-height:300px;"><table style="font-size:12px;">
+        <thead><tr><th>Month</th><th>Pages</th><th>Rows actually stored</th><th>Counter claims</th><th>Missing</th></tr></thead>
+        <tbody>${rowsOut.join('')||'<tr><td colspan="5"><div class="empty-state">No month pages exist yet.</div></td></tr>'}</tbody>
+      </table></div>
+      <div class="modal-actions"><button class="btn btn-primary" onclick="document.getElementById('modalRoot')?.remove()">Close</button></div>
+    </div></div>`;
+  document.body.appendChild(div);
+  await logActivity('DATA_DOCTOR', `Data Doctor: ${months.length} months, ${actualTotal.toLocaleString()} rows found vs ${expectedTotal.toLocaleString()} claimed, ${missingDocs} missing page(s)`, {page:'Backup & Export'});
 }
 
 /* =========================================================
