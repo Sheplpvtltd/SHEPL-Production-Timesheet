@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
   :root{
     --teal:#17A385;         /* primary brand */
@@ -194,22 +195,23 @@ const LOGO_B64 = "R0lGODlhuwBmAHAAACwAAAAAuwBmAIX////m7+/37++E1sWl3s7v9/+t795Szq
    every user. Leave blank to run in local mode.
    ========================================================= */
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAiGzXIrEyJQaj6-4xvszUePzU7fxDBy-8",
-  authDomain: "shepl-production-timesheet.firebaseapp.com",
-  projectId: "shepl-production-timesheet",
-  storageBucket: "shepl-production-timesheet.firebasestorage.app",
-  messagingSenderId: "175901160076",
-  appId: "1:175901160076:web:79c4ef8e0bbb82eb2181a9"
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
 };
 
 const SKEY = {
   employees:'ts2_employees', projects:'ts2_projects', users:'ts2_users',
   timesheets:'ts2_timesheets', activity:'ts2_activity',
-  departments:'ts2_departments', dropdowns:'ts2_dropdowns', backupMeta:'ts2_backupmeta'
+  departments:'ts2_departments', dropdowns:'ts2_dropdowns', backupMeta:'ts2_backupmeta',
+  drafts:'ts2_drafts', settings:'ts2_settings'
 };
 const BACKUP_KEY = 'ts2_backup_snapshot';
 
-let DB = { employees:[], projects:[], users:[], timesheets:[], activity:[], departments:[], dropdowns:{}, backupMeta:{} };
+let DB = { employees:[], projects:[], users:[], timesheets:[], activity:[], departments:[], dropdowns:{}, backupMeta:{}, drafts:{}, settings:{maxDailyHours:24, sessionMinutes:30} };
 let SESSION = null;
 let VIEW = 'dashboard';
 
@@ -288,13 +290,14 @@ async function loadAll(){
     }catch(e){ /* keep default */ }
   }
   // Auto-restore from backup if main store is empty but a backup exists
-  if(DB.users.length===0){
+  if(DB.users.length===0 && (!DB.dropdowns || Object.keys(DB.dropdowns).length===0)){
     try{
       const b = await storeGet(BACKUP_KEY);
       if(b){ const snap = JSON.parse(b); if(snap.data && snap.data.users && snap.data.users.length){ DB = {...DB, ...snap.data}; toast('Data restored from last auto-backup'); } }
     }catch(e){}
   }
-  if(DB.users.length===0) await seedStructural();
+  if(!DB.dropdowns || Object.keys(DB.dropdowns).length===0) await seedStructural();
+  if(!DB.settings || !DB.settings.maxDailyHours) DB.settings = {maxDailyHours:24, sessionMinutes:30, ...(DB.settings||{})};
 }
 async function save(key){
   try{ await storeSet(SKEY[key], JSON.stringify(DB[key])); }catch(e){ console.error('save failed', key, e); }
@@ -309,7 +312,7 @@ async function logActivity(action, detail, meta){
     role: SESSION ? SESSION.role : '-',
     departmentId: SESSION ? SESSION.departmentId : null,
     action, detail,
-    page: (meta&&meta.page)||null, changes: (meta&&meta.changes)||null
+    page: (meta&&meta.page)||null, changes: (meta&&meta.changes)||null, recordId:(meta&&meta.recordId)||null
   });
   DB.activity = DB.activity.slice(0,1000);
   await save('activity');
@@ -337,7 +340,8 @@ function toast(msg, isErr){
 /* ---------- structural seed: NO sample data, only what the app needs to run ---------- */
 async function seedStructural(){
   DB.employees = []; DB.projects = []; DB.timesheets = []; DB.activity = []; DB.departments = [];
-  DB.users = [{uid:'admin', name:'Admin', role:'admin', departmentId:null}];
+  DB.drafts = {}; DB.settings = {maxDailyHours:24, sessionMinutes:30};
+  DB.users = []; // no accounts exist until the first Admin is created via First-Time Setup
   // Dropdown lists exactly as per the attached Excel "Dropdown" sheet (structural config, not records)
   DB.dropdowns = {
     Designation: ['Supervisor','Fitter','Moulder','Welder','Helper','Turner','Skilled Helper','CNC Operator'],
@@ -362,8 +366,8 @@ function openProjects(){ return DB.projects.filter(p=>p.status==='Open'); }
 
 /* ---------- PAGE & COLUMN registries ---------- */
 const PAGES = [
-  {id:'employees',       icon:'👥', label:'Employees'},
-  {id:'projects',        icon:'🏗️', label:'Project List'},
+  {id:'employees',       icon:'👥', label:'Employee Master'},
+  {id:'projects',        icon:'🏗️', label:'Project Master'},
   {id:'timesheets',      icon:'🗂️', label:'TimeSheets'},
   {id:'dailyentry',      icon:'📝', label:'Daily Entry'},
   {id:'dropdown',        icon:'🔽', label:'Dropdown'},
@@ -372,73 +376,165 @@ const PAGES = [
   {id:'rpt_designation', icon:'🛠️', label:'Designation Project Report'},
 ];
 const ADMIN_PAGES = [
-  {id:'departments', icon:'🏢', label:'Departments & Access'},
-  {id:'users',       icon:'🔑', label:'Users'},
+  {id:'departments', icon:'🏢', label:'Department Management'},
+  {id:'users',       icon:'🔑', label:'User Management'},
   {id:'backup',      icon:'💾', label:'Backup & Export'},
 ];
 const COLS = {
   employees: [
-    {key:'empCode', label:'Emp ID'}, {key:'name', label:'Name'}, {key:'doj', label:'Date of Joining'},
-    {key:'rate', label:'Rate/Hr'}, {key:'designation', label:'Designation'}, {key:'dol', label:'Date of Leaving'},
-    {key:'status', label:'Status'}, {key:'isManager', label:'Is Manager'}, {key:'managerId', label:'Manager'},
-    {key:'departmentId', label:'Department'}
+    {key:'empCode', label:'Emp ID'}, {key:'name', label:'Name of Employee'}, {key:'designation', label:'Designation'},
+    {key:'departmentId', label:'Department'}, {key:'email', label:'Email ID'}, {key:'rate', label:'Rate Per hr'},
+    {key:'managerId', label:'Manager'}, {key:'doj', label:'Date of Joining'}, {key:'dol', label:'Date of Leaving'},
+    {key:'status', label:'Status'}, {key:'isManager', label:'Is Manager'}
   ],
   projects: [
     {key:'code', label:'Project ID'}, {key:'name', label:'Project Name'}, {key:'desc', label:'Description'},
+    {key:'departmentId', label:'Department'}, {key:'managerId', label:'Project Manager'},
     {key:'start', label:'Start Date'}, {key:'end', label:'End Date'}, {key:'status', label:'Status'}
   ],
+  /* Timesheet page — EXACT column order per approved spec */
   timesheets: [
-    {key:'date', label:'Date'}, {key:'empId', label:'Emp ID'}, {key:'name', label:'Name'},
-    {key:'designation', label:'Designation'}, {key:'rate', label:'Rate per Hour'}, {key:'projectId', label:'Proj ID'},
-    {key:'projectName', label:'Project Name'}, {key:'hours', label:'Hrs'}, {key:'cost', label:'Cost'},
-    {key:'managerId', label:'Manager'}
+    {key:'date', label:'Date'}, {key:'empId', label:'EmpId'}, {key:'designation', label:'Designation'},
+    {key:'rate', label:'Rate Per hr'}, {key:'name', label:'Name'}, {key:'projectId', label:'Proj ID'},
+    {key:'hours', label:'Hrs'}, {key:'managerId', label:'Manager ID of Entry'}
   ]
 };
+
+/* ---------- ACTION registry ---------- */
+const PAGE_ACTIONS = ['view','add','save_draft','edit','submit','delete','export','download','reopen'];
+const ACTION_LABELS = {view:'View', add:'Add', save_draft:'Save Draft', edit:'Edit', submit:'Submit',
+  delete:'Delete', export:'Export', download:'Download', reopen:'Reopen submitted'};
+const LEGACY_DEFAULT_ACTIONS = ['view','add','save_draft','edit','submit','export','download'];
+
+/* Effective permission: user override → department → legacy dept.pages → deny. Admin = everything. */
+function can(action, pageId){
+  if(!SESSION) return false;
+  if(SESSION.role==='admin') return true;
+  const u = SESSION;
+  if(u.pagePerms && u.pagePerms[pageId]) return u.pagePerms[pageId].includes(action);
+  const d = myDept();
+  if(!d) return false;
+  if(d.pagePerms && d.pagePerms[pageId]) return d.pagePerms[pageId].includes(action);
+  if(Array.isArray(d.pages) && d.pages.includes(pageId)) return LEGACY_DEFAULT_ACTIONS.includes(action);
+  return false;
+}
 function pageAllowed(pageId){
-  if(isAdmin()) return true;
-  const d = myDept();
-  if(!d) return false;
-  return (d.pages||[]).includes(pageId);
+  if(!SESSION) return false;
+  if(SESSION.role==='admin') return true;
+  return can('view', pageId);
 }
-function colAllowed(pageId, colKey){
-  if(isAdmin()) return true;
+/* Column state: 'hidden' | 'view' | 'edit'. User override → dept → legacy visible-array → view */
+function colState(pageId, colKey){
+  if(!SESSION) return 'hidden';
+  if(SESSION.role==='admin') return 'edit';
+  const u = SESSION;
+  if(u.colPerms && u.colPerms[pageId] && u.colPerms[pageId][colKey]) return u.colPerms[pageId][colKey];
   const d = myDept();
-  if(!d) return false;
-  const cols = (d.cols||{})[pageId];
-  if(!cols) return true; // no restriction set = all columns
-  return cols.includes(colKey);
+  if(!d) return 'hidden';
+  if(d.colPerms && d.colPerms[pageId] && d.colPerms[pageId][colKey]) return d.colPerms[pageId][colKey];
+  if(d.cols && Array.isArray(d.cols[pageId])) return d.cols[pageId].includes(colKey) ? 'view' : 'hidden';
+  return 'view';
 }
+function colAllowed(pageId, colKey){ return colState(pageId, colKey)!=='hidden'; }
 function visibleCols(pageId){ return COLS[pageId].filter(c=>colAllowed(pageId, c.key)); }
 
-/* ---------- data scoping ---------- */
+/* ---------- data scoping ---------- *//* ---------- data scoping ---------- */
+function userScope(){
+  if(!SESSION) return 'own';
+  if(SESSION.role==='admin') return 'all';
+  return SESSION.scope || 'own';
+}
 function scopedEmployees(){
-  if(isAdmin()) return DB.employees;
-  return DB.employees.filter(e=>e.departmentId===SESSION.departmentId);
+  const s = userScope();
+  if(s==='all') return DB.employees;
+  if(s==='department') return DB.employees.filter(e=>e.departmentId===SESSION.departmentId);
+  if(s==='team'){
+    const my = SESSION.empId;
+    return DB.employees.filter(e=>e.empCode===my || e.managerId===my);
+  }
+  return DB.employees.filter(e=>e.empCode===SESSION.empId); // own
 }
 function scopedTimesheets(){
-  if(isAdmin()) return DB.timesheets;
-  return DB.timesheets.filter(t=>t.departmentId===SESSION.departmentId);
+  const s = userScope();
+  if(s==='all') return DB.timesheets;
+  if(s==='department') return DB.timesheets.filter(t=>t.departmentId===SESSION.departmentId);
+  const codes = new Set(scopedEmployees().map(e=>e.empCode));
+  return DB.timesheets.filter(t=>codes.has(t.empId));
 }
 
 /* =========================================================
-   LOGIN
+   AUTH — real login. No public sign-up. Admin creates users.
+   Local mode: SHA-256 hashed passwords in the data store.
+   Firebase mode: Firebase Authentication (email/password).
    ========================================================= */
-function storageModeText(){
-  if(HAS_CLAUDE_STORAGE) return 'in shared storage here';
-  if(HAS_LOCAL) return 'in this browser on this computer';
-  return 'temporarily in memory';
+/* compact SHA-256 (public-domain style implementation) */
+function sha256(ascii){
+  function rr(v,a){return (v>>>a)|(v<<(32-a));}
+  var mathPow=Math.pow,maxWord=mathPow(2,32),i,j,result='',words=[],asciiBitLength=ascii.length*8;
+  var hash=sha256.h=sha256.h||[],k=sha256.k=sha256.k||[],primeCounter=k.length,isComposite={};
+  for(var candidate=2;primeCounter<64;candidate++){
+    if(!isComposite[candidate]){
+      for(i=0;i<313;i+=candidate){isComposite[i]=candidate;}
+      hash[primeCounter]=(mathPow(candidate,.5)*maxWord)|0;
+      k[primeCounter++]=(mathPow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  ascii+='\x80';
+  while(ascii.length%64-56)ascii+='\x00';
+  for(i=0;i<ascii.length;i++){
+    j=ascii.charCodeAt(i);
+    if(j>>8)return '';
+    words[i>>2]|=j<<((3-i)%4)*8;
+  }
+  words[words.length]=(asciiBitLength/maxWord)|0;
+  words[words.length]=asciiBitLength;
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16),oldHash=hash;
+    hash=hash.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15],w2=w[i-2];
+      var a=hash[0],e=hash[4];
+      var temp1=hash[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]
+        +(w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      var temp2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(temp1+temp2)|0].concat(hash);
+      hash[4]=(hash[4]+temp1)|0;
+    }
+    for(i=0;i<8;i++){hash[i]=(hash[i]+oldHash[i])|0;}
+  }
+  for(i=0;i<8;i++){
+    for(j=3;j+1;j--){
+      var b=(hash[i]>>(j*8))&255;
+      result+=((b>>4).toString(16))+((b&15).toString(16));
+    }
+  }
+  return result;
 }
-function renderLogin(){
+function hashPw(pw){ return sha256('shepl:'+pw); }
+
+/* failed-login lockout: 5 fails => locked 5 minutes */
+function loginLockInfo(email){
+  try{
+    const raw = HAS_LOCAL ? localStorage.getItem('fl_'+email) : MEMSTORE['fl_'+email];
+    if(!raw) return {locked:false, n:0};
+    const o = JSON.parse(raw);
+    if(o.until && Date.now() < o.until) return {locked:true, until:o.until, n:o.n};
+    return {locked:false, n: (Date.now()-o.ts < 15*60000) ? o.n : 0};
+  }catch(e){ return {locked:false, n:0}; }
+}
+function noteFailedLogin(email){
+  const info = loginLockInfo(email);
+  const n = info.n + 1;
+  const o = {n, ts:Date.now(), until: n>=5 ? Date.now()+5*60000 : 0};
+  const raw = JSON.stringify(o);
+  if(HAS_LOCAL) localStorage.setItem('fl_'+email, raw); else MEMSTORE['fl_'+email]=raw;
+  return o;
+}
+function clearFailedLogins(email){ if(HAS_LOCAL) localStorage.removeItem('fl_'+email); else delete MEMSTORE['fl_'+email]; }
+
+let AUTH_READY = false;
+function renderLogin(msg){
   const app = document.getElementById('app');
-  const rows = DB.users.map(u=>{
-    const initials = u.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const meta = u.role==='admin' ? 'Full access — all pages, all departments' : `Department: ${deptName(u.departmentId)}`;
-    return `<button class="account-btn" onclick="login('${u.uid}')">
-      <div class="avatar">${initials}</div>
-      <div><div class="account-name">${u.name}</div><div class="account-meta">${meta}</div></div>
-      <span class="role-chip role-${u.role==='admin'?'admin':'user'}">${u.role}</span>
-    </button>`;
-  }).join('');
   app.innerHTML = `
     <div class="login-wrap">
       <div class="login-card">
@@ -448,22 +544,171 @@ function renderLogin(){
           <div class="login-sub">Turnkey Solutions for Corrosive Applications</div>
         </div>
         <div class="login-body">
-          <div class="login-label">Select account</div>
-          <div class="account-list">${rows}</div>
-          <div class="login-footnote">🔒 ${FB_MODE? 'Connected to Firebase — every change syncs live to all users instantly.' : 'Local mode — changes sync live across tabs on this computer. Paste your Firebase config (see the included README) to turn on live multi-user sync.'}
-          Data is saved automatically ${storageModeText()}, auto-backed-up every 30 seconds, and never cleared on refresh or logout.</div>
+          ${msg?`<div class="scope-banner" style="margin-bottom:14px;">${msg}</div>`:''}
+          <div class="login-label">Sign in with your company account</div>
+          <div class="field" style="margin-bottom:10px;"><label>Email / User ID</label><input id="li_email" type="email" placeholder="name@company.com" autocomplete="username"></div>
+          <div class="field" style="margin-bottom:14px;"><label>Password</label><input id="li_pw" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doLogin()">🔐 Sign In</button>
+          <div class="login-footnote">
+            Accounts are created only by the Admin — there is no self sign-up.
+            ${DB.users.length===0 || !FB_MODE ? `<br><a href="#" onclick="renderBootstrap();return false;" style="color:var(--teal-dark);font-weight:700;">⚙️ First-Time Setup — create the first Admin account</a> <span style="color:var(--muted)">(works only when no accounts exist yet)</span>`:''}
+            <br>Mode: ${FB_MODE?'🔥 Firebase — live sync, cloud authentication':'💻 Local — data & hashed passwords stored in this browser'}
+          </div>
         </div>
       </div>
     </div>`;
 }
-async function login(uid){
-  const u = DB.users.find(x=>x.uid===uid);
-  if(!u){ toast('Account not found', true); return; }
+function renderBootstrap(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-head">
+          <img src="data:image/gif;base64,${LOGO_B64}" alt="SHEPL">
+          <div class="login-title">First-Time Setup</div>
+          <div class="login-sub">Create the very first Admin account</div>
+        </div>
+        <div class="login-body">
+          <div class="field" style="margin-bottom:10px;"><label>Admin name</label><input id="bs_name" placeholder="e.g. Hitendra"></div>
+          <div class="field" style="margin-bottom:10px;"><label>Email (this becomes the login ID)</label><input id="bs_email" type="email" placeholder="admin@shepl.com"></div>
+          <div class="field" style="margin-bottom:14px;"><label>Password (min 6 characters)</label><input id="bs_pw" type="password"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doBootstrap()">Create Admin & Sign In</button>
+          <div class="login-footnote">This option only works when no accounts exist. After this, all further users are created by the Admin inside the dashboard (User Management).
+          <br><a href="#" onclick="renderLogin();return false;" style="color:var(--teal-dark);font-weight:700;">← Back to sign in</a></div>
+        </div>
+      </div>
+    </div>`;
+}
+async function doBootstrap(){
+  const name = document.getElementById('bs_name').value.trim();
+  const email = document.getElementById('bs_email').value.trim().toLowerCase();
+  const pw = document.getElementById('bs_pw').value;
+  if(!name || !email || pw.length<6){ toast('Fill name, email, and a password of at least 6 characters', true); return; }
+  if(FB_MODE){
+    try{
+      await firebase.auth().createUserWithEmailAndPassword(email, pw);
+      // profile creation continues in the auth listener; mark intent
+      window.__bootstrapIntent = {name, email};
+    }catch(e){
+      if(e.code==='auth/email-already-in-use') toast('This email already has an account — use Sign In', true);
+      else if(e.code==='auth/operation-not-allowed') toast('Enable Email/Password in Firebase Console → Authentication → Sign-in method, then retry', true);
+      else toast('Could not create account: '+(e.message||e.code), true);
+    }
+    return;
+  }
+  await loadAll();
+  if(DB.users.length>0){ toast('Accounts already exist — First-Time Setup is disabled. Use Sign In.', true); renderLogin(); return; }
+  const u = {uid:'U'+Date.now(), name, email, role:'admin', departmentId:null, empId:null, designation:null,
+    scope:'all', status:'Active', mustChangePassword:false, pwHash:hashPw(pw), createdAt:new Date().toISOString()};
+  DB.users.push(u);
+  await save('users');
+  await establishSession(u);
+}
+async function doLogin(){
+  const email = document.getElementById('li_email').value.trim().toLowerCase();
+  const pw = document.getElementById('li_pw').value;
+  if(!email || !pw){ toast('Enter email and password', true); return; }
+  const lock = loginLockInfo(email);
+  if(lock.locked){ toast('Account temporarily locked after repeated failed attempts. Try again in a few minutes.', true); return; }
+  if(FB_MODE){
+    try{
+      await firebase.auth().signInWithEmailAndPassword(email, pw);
+      clearFailedLogins(email);
+      // session continues in onAuthStateChanged
+    }catch(e){
+      const o = noteFailedLogin(email);
+      try{ await logActivity('FAILED_LOGIN', `Failed sign-in attempt for ${email}${o.until?' — account locked 5 min':''}`, {page:'Login'}); }catch(_){}
+      if(e.code==='auth/operation-not-allowed') toast('Email/Password sign-in is not enabled yet — Firebase Console → Authentication → Sign-in method → enable Email/Password', true);
+      else toast('Sign-in failed: wrong email or password'+(o.until?' — locked for 5 minutes':''), true);
+    }
+    return;
+  }
+  await loadAll();
+  const u = DB.users.find(x=>String(x.email||'').toLowerCase()===email);
+  if(!u || u.pwHash !== hashPw(pw)){
+    const o = noteFailedLogin(email);
+    await logActivity('FAILED_LOGIN', `Failed sign-in attempt for ${email}${o.until?' — locked 5 min':''}`, {page:'Login'});
+    toast('Sign-in failed: wrong email or password'+(o.until?' — locked for 5 minutes':''), true);
+    return;
+  }
+  clearFailedLogins(email);
+  await establishSession(u);
+}
+async function establishSession(u){
+  if(u.status && u.status!=='Active'){
+    toast('This account is '+u.status.toLowerCase()+' — contact your Admin', true);
+    if(FB_MODE){ try{ await firebase.auth().signOut(); }catch(e){} }
+    return;
+  }
   SESSION = u; VIEW='dashboard';
-  try{ await logActivity('LOGIN', `${u.name} signed in`); }catch(e){}
+  await logActivity('LOGIN', `${u.name} signed in`, {page:'Login', recordId:u.uid});
+  startInactivityTimer();
+  if(u.mustChangePassword){ renderForcedPasswordChange(); return; }
   renderApp();
 }
-function logout(){ SESSION=null; renderApp(); }
+function renderForcedPasswordChange(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-head">
+          <img src="data:image/gif;base64,${LOGO_B64}" alt="SHEPL">
+          <div class="login-title">Set a New Password</div>
+          <div class="login-sub">Your Admin gave you a temporary password — choose your own to continue</div>
+        </div>
+        <div class="login-body">
+          <div class="field" style="margin-bottom:10px;"><label>New password (min 6 characters)</label><input id="cp_pw1" type="password"></div>
+          <div class="field" style="margin-bottom:14px;"><label>Repeat new password</label><input id="cp_pw2" type="password"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="doForcedPasswordChange()">Save & Continue</button>
+        </div>
+      </div>
+    </div>`;
+}
+async function doForcedPasswordChange(){
+  const p1 = document.getElementById('cp_pw1').value, p2 = document.getElementById('cp_pw2').value;
+  if(p1.length<6){ toast('Password must be at least 6 characters', true); return; }
+  if(p1!==p2){ toast('Passwords do not match', true); return; }
+  if(FB_MODE){
+    try{ await firebase.auth().currentUser.updatePassword(p1); }
+    catch(e){ toast('Could not change password: '+(e.message||e.code), true); return; }
+  } else {
+    SESSION.pwHash = hashPw(p1);
+  }
+  SESSION.mustChangePassword = false;
+  const idx = DB.users.findIndex(x=>x.uid===SESSION.uid);
+  if(idx>=0){ DB.users[idx] = {...DB.users[idx], mustChangePassword:false, ...(FB_MODE?{}:{pwHash:SESSION.pwHash})}; await save('users'); }
+  await logActivity('PASSWORD_CHANGE', `${SESSION.name} set a new password (first-login change)`, {page:'Login', recordId:SESSION.uid});
+  renderApp();
+}
+async function logout(){
+  if(SESSION){ await logActivity('LOGOUT', `${SESSION.name} signed out`, {page:'Login', recordId:SESSION.uid}); }
+  SESSION=null;
+  stopInactivityTimer();
+  if(FB_MODE){ try{ await firebase.auth().signOut(); }catch(e){} }
+  renderLogin();
+}
+
+/* ---------- inactivity session expiry ---------- */
+let __lastActivity = Date.now(), __inactTimer = null;
+function bumpActivity(){ __lastActivity = Date.now(); }
+function startInactivityTimer(){
+  stopInactivityTimer();
+  __lastActivity = Date.now();
+  __inactTimer = setInterval(async ()=>{
+    const mins = (DB.settings && DB.settings.sessionMinutes) || 30;
+    if(SESSION && Date.now()-__lastActivity > mins*60000){
+      const name = SESSION.name;
+      SESSION = null;
+      stopInactivityTimer();
+      if(FB_MODE){ try{ await firebase.auth().signOut(); }catch(e){} }
+      renderLogin('⏳ Session expired after '+mins+' minutes of inactivity. Please sign in again.');
+      try{ await logActivity('LOGOUT', `${name} — session expired (inactivity)`, {page:'Login'}); }catch(e){}
+    }
+  }, 30000);
+}
+function stopInactivityTimer(){ if(__inactTimer){ clearInterval(__inactTimer); __inactTimer=null; } }
+window.addEventListener('click', bumpActivity, true);
+window.addEventListener('keydown', bumpActivity, true);
 
 /* =========================================================
    SHELL
@@ -495,7 +740,7 @@ function renderShell(innerHtml, title, sub){
           <div class="who">
             <div style="text-align:right">
               <div class="name">${SESSION.name}</div>
-              <div class="role">${isAdmin()?'Administrator':deptName(SESSION.departmentId)}</div>
+              <div class="role">${isAdmin()?'Administrator · all data':(deptName(SESSION.departmentId)+' · scope: '+(SESSION.scope||'own'))}</div>
             </div>
             <button class="logout-btn" onclick="logout()">Sign out</button>
           </div>
@@ -590,7 +835,7 @@ const BULK_CFG = {
       ['Role','role',false,'text','admin or user (blank = user)'],
       ['Department','departmentId',false,'dept','Required when Role is user']
     ],
-    aliases:{name:'name',role:'role',department:'departmentId',departmentid:'departmentId'}
+    aliases:{name:'name',role:'role',department:'departmentId',departmentid:'departmentId',email:'email',scope:'scope',empid:'empId'}
   },
   dropdown: { sheet:'Dropdown', file:'Dropdown_Bulk_Upload_Format.xlsx', cols:null, aliases:{} }
 };
@@ -847,7 +1092,7 @@ function showBulkResult(res){
       <div class="ok-note">✅ ${res.created} ${noun} created${res.updated?`, ${res.updated} updated`:''}${res.skipped?`, ${res.skipped} duplicate(s) skipped`:''}.</div>
       ${errTable}${warnHtml}
       ${res.errors.length?'<div style="font-size:12px;color:var(--muted);margin-top:6px;">Fix the listed rows in your Excel file and upload again — valid rows already imported will be updated, not duplicated.</div>':''}
-      <div class="modal-actions"><button class="btn btn-primary" onclick="document.getElementById('modalRoot').remove()">Done</button></div>
+      <div class="modal-actions"><button class="btn btn-primary" onclick="document.getElementById('modalRoot')?.remove()">Done</button></div>
     </div></div>`;
   document.body.appendChild(div);
 }
@@ -862,7 +1107,8 @@ function bulkBtn(target){
 async function runBackup(){
   const snap = { ts: new Date().toISOString(), data: {
     employees:DB.employees, projects:DB.projects, users:DB.users, timesheets:DB.timesheets,
-    activity:DB.activity, departments:DB.departments, dropdowns:DB.dropdowns
+    activity:DB.activity, departments:DB.departments, dropdowns:DB.dropdowns,
+    drafts:DB.drafts, settings:DB.settings
   }};
   await storeSet(BACKUP_KEY, JSON.stringify(snap));
   DB.backupMeta = {lastBackup: snap.ts};
@@ -894,7 +1140,10 @@ function downloadExcelBackup(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ddRows), 'Dropdown');
   const deptRows = DB.departments.map(d=>({'Department':d.name,'Pages Allowed':(d.pages||[]).join(', '),'Column Restrictions':JSON.stringify(d.cols||{})}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deptRows.length?deptRows:[{}]), 'Departments');
-  const userRows = DB.users.map(u=>({'Name':u.name,'Role':u.role,'Department':deptName(u.departmentId)}));
+  const userRows = DB.users.map(u=>({'Name':u.name,'Email':u.email,'Emp ID':u.empId,'Role':u.role,'Department':deptName(u.departmentId),'Scope':u.scope,'Status':u.status||'Active'}));
+  const draftRows = Object.entries(DB.drafts).map(([k,d])=>({'Key':k,'EmpId':d.empId,'Date':d.date,'Status':d.status,
+    ...Object.fromEntries((d.pairs||[]).flatMap((pr,i)=>[['Proj ID'+(i+1),pr.p||''],['Hrs'+(i+1),pr.h||'']]))}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(draftRows.length?draftRows:[{}]), 'DailyEntry');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(userRows), 'Users');
   const actRows = DB.activity.map(a=>({'Time':a.ts,'User':a.user,'Role':a.role,'Action':a.action,'Detail':a.detail}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(actRows.length?actRows:[{}]), 'ActivityLog');
@@ -944,7 +1193,8 @@ function renderEmployees(){
       case 'rate': return `<td>${e.rate?fmtMoney(e.rate):'—'}</td>`;
       case 'status': return `<td><span class="badge-pill pill-${e.status==='Active'?'active':'inactive'}">${e.status}</span></td>`;
       case 'isManager': return `<td>${e.isManager?'Yes':'No'}</td>`;
-      case 'managerId': return `<td>${e.managerId?managerName(e.managerId):'—'}</td>`;
+      case 'email': return `<td>${e.email||'—'}</td>`;
+      case 'managerId': return `<td>${e.managerId?managerName(e.managerId)+' ('+e.managerId+')':'—'}</td>`;
       case 'departmentId': return `<td>${deptName(e.departmentId)}</td>`;
       default: return `<td>${e[c.key]??'—'}</td>`;
     }
@@ -977,6 +1227,7 @@ function openEmpModal(empCode){
       <h3>${empCode?'Edit':'Add'} Employee</h3>
       <div class="field"><label>Emp ID *</label><input id="f_empCode" value="${e.empCode}" ${empCode?'disabled':''}></div>
       <div class="field"><label>Name *</label><input id="f_name" value="${e.name}"></div>
+      <div class="field"><label>Email ID</label><input id="f_email" type="email" value="${e.email||''}"></div>
       <div class="field"><label>Date of Joining</label><input id="f_doj" type="date" value="${e.doj||''}"></div>
       <div class="field"><label>Rate / Hr (₹)</label><input id="f_rate" type="number" value="${e.rate}"></div>
       <div class="field"><label>Designation</label><select id="f_designation">${desigOpts}</select></div>
@@ -987,7 +1238,7 @@ function openEmpModal(empCode){
       <div class="field"><label>Department</label><select id="f_departmentId">${deptOpts}</select></div>
       <div class="modal-actions">
         ${empCode?`<button class="btn btn-danger" onclick="deleteEmp('${empCode}')">Delete</button>`:''}
-        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot').remove()">Cancel</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
         <button class="btn btn-primary" onclick="saveEmp('${empCode||''}')">Save</button>
       </div>
     </div></div>`;
@@ -999,6 +1250,7 @@ async function saveEmp(existingCode){
   if(!empCode || !name){ toast('Emp ID and Name are required', true); return; }
   const data = {
     empCode, name,
+    email: document.getElementById('f_email').value.trim() || null,
     doj: document.getElementById('f_doj').value || null,
     rate: Number(document.getElementById('f_rate').value)||0,
     designation: document.getElementById('f_designation').value,
@@ -1016,14 +1268,14 @@ async function saveEmp(existingCode){
   await logActivity(existingCode?'UPDATE':'CREATE',
     `Employee ${empCode} (${name}) ${existingCode?'updated':'created'}` + (ch? ' — '+ch.map(c=>`${c.field}: "${c.oldValue}" → "${c.newValue}"`).join('; ') : ''),
     {page:'Employees', changes:ch});
-  document.getElementById('modalRoot').remove();
+  document.getElementById('modalRoot')?.remove();
   toast('Employee saved'); renderApp();
 }
 async function deleteEmp(empCode){
   DB.employees = DB.employees.filter(x=>x.empCode!==empCode);
   await save('employees');
   await logActivity('DELETE', `Employee ${empCode} deleted`);
-  document.getElementById('modalRoot').remove();
+  document.getElementById('modalRoot')?.remove();
   toast('Employee deleted'); renderApp();
 }
 
@@ -1039,6 +1291,8 @@ function renderProjects(){
       case 'start': return `<td>${fmtDate(p.start)}</td>`;
       case 'end': return `<td>${fmtDate(p.end)}</td>`;
       case 'status': return `<td><span class="badge-pill pill-${String(p.status).toLowerCase()}">${p.status}</span></td>`;
+      case 'departmentId': return `<td>${p.departmentId?deptName(p.departmentId):'Any'}</td>`;
+      case 'managerId': return `<td>${p.managerId?managerName(p.managerId):'—'}</td>`;
       default: return `<td>${p[c.key]??'—'}</td>`;
     }
   };
@@ -1068,9 +1322,13 @@ function openProjModal(code){
       <div class="field"><label>Start Date</label><input id="p_start" type="date" value="${p.start||''}"></div>
       <div class="field"><label>End Date</label><input id="p_end" type="date" value="${p.end||''}"></div>
       <div class="field"><label>Status</label><select id="p_status">${statusOpts}</select></div>
+      <div class="field"><label>Department</label><select id="p_dept">${['<option value="">— Any —</option>'].concat(DB.departments.map(d=>`<option value="${d.id}" ${p.departmentId===d.id?'selected':''}>${d.name}</option>`)).join('')}</select></div>
+      <div class="field"><label>Project Manager</label><select id="p_mgr">${['<option value="">—</option>'].concat(activeManagers().map(m=>`<option value="${m.empCode}" ${p.managerId===m.empCode?'selected':''}>${m.name}</option>`)).join('')}</select></div>
+      <div class="field"><label>Usable by departments (Ctrl-click for multiple, none = all)</label>
+        <select id="p_allowed" multiple size="3">${DB.departments.map(d=>`<option value="${d.id}" ${(p.allowedDepts||[]).includes(d.id)?'selected':''}>${d.name}</option>`).join('')}</select></div>
       <div class="modal-actions">
         ${code?`<button class="btn btn-danger" onclick="deleteProj('${code}')">Delete</button>`:''}
-        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot').remove()">Cancel</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
         <button class="btn btn-primary" onclick="saveProj('${code||''}')">Save</button>
       </div>
     </div></div>`;
@@ -1082,7 +1340,10 @@ async function saveProj(existingCode){
   if(!code || !name){ toast('Project ID and Name are required', true); return; }
   const data = { code, name, desc:document.getElementById('p_desc').value.trim(),
     start:document.getElementById('p_start').value||null, end:document.getElementById('p_end').value||null,
-    status:document.getElementById('p_status').value };
+    status:document.getElementById('p_status').value,
+    departmentId: document.getElementById('p_dept').value||null,
+    managerId: document.getElementById('p_mgr').value||null,
+    allowedDepts: [...document.getElementById('p_allowed').selectedOptions].map(o=>o.value) };
   const idx = DB.projects.findIndex(x=>String(x.code)===String(code));
   const before = idx>=0 ? {...DB.projects[idx]} : null;
   if(idx>=0) DB.projects[idx]={...DB.projects[idx],...data}; else DB.projects.push(data);
@@ -1091,14 +1352,14 @@ async function saveProj(existingCode){
   await logActivity(existingCode?'UPDATE':'CREATE',
     `Project ${code} (${name}) ${existingCode?'updated':'created'}` + (ch? ' — '+ch.map(c=>`${c.field}: "${c.oldValue}" → "${c.newValue}"`).join('; ') : ''),
     {page:'Project List', changes:ch});
-  document.getElementById('modalRoot').remove();
+  document.getElementById('modalRoot')?.remove();
   toast('Project saved'); renderApp();
 }
 async function deleteProj(code){
   DB.projects = DB.projects.filter(x=>String(x.code)!==String(code));
   await save('projects');
   await logActivity('DELETE', `Project ${code} deleted`);
-  document.getElementById('modalRoot').remove();
+  document.getElementById('modalRoot')?.remove();
   toast('Project deleted'); renderApp();
 }
 
@@ -1125,9 +1386,7 @@ function renderTimesheets(){
       case 'empId': return `<td class="grid-code">${r.empId}</td>`;
       case 'rate': return `<td>${fmtMoney(r.rate)}</td>`;
       case 'projectId': return `<td class="grid-code">${r.projectId}</td>`;
-      case 'projectName': return `<td>${projName(r.projectId)}</td>`;
-      case 'cost': return `<td>${fmtMoney(r.hours*r.rate)}</td>`;
-      case 'managerId': return `<td>${managerName(r.managerId)}</td>`;
+      case 'managerId': return `<td class="grid-code">${r.managerId||'—'}</td>`;
       default: return `<td>${r[c.key]??'—'}</td>`;
     }
   };
@@ -1165,12 +1424,7 @@ function exportTsExcel(){
   const cols = visibleCols('timesheets');
   const data = rows.map(r=>{
     const o = {};
-    cols.forEach(c=>{
-      if(c.key==='projectName') o[c.label]=projName(r.projectId);
-      else if(c.key==='cost') o[c.label]=Number((r.hours*r.rate).toFixed(2));
-      else if(c.key==='managerId') o[c.label]=managerName(r.managerId);
-      else o[c.label]=r[c.key];
-    });
+    cols.forEach(c=>{ o[c.label] = (c.key==='managerId') ? (r.managerId||'') : r[c.key]; });
     return o;
   });
   const wb = XLSX.utils.book_new();
@@ -1180,97 +1434,256 @@ function exportTsExcel(){
 }
 
 /* =========================================================
-   DAILY ENTRY (Rate per Hour REMOVED per requirement)
+   DAILY ENTRY — exact columns:
+   Emp ID | Designation | Name of Employee | Proj ID1 | Hrs | ... | Proj ID6 | Hrs | Total hrs
+   Draft → Submit workflow. Submitted entries explode into
+   one Timesheet row per project with hours (sourceKey dedupe).
    ========================================================= */
-let entryDraft = {};
+let entryDraft = {}; // in-memory edits: key(empCode_date) -> {p1..p6,h1..h6}
+function draftKey(empCode){ return empCode + '_' + window.__entryDate; }
+function permittedProjects(){
+  return DB.projects.filter(p=>{
+    if(p.status!=='Open') return false;
+    if(isAdmin()) return true;
+    const allowed = p.allowedDepts||[];
+    return allowed.length===0 || allowed.includes(SESSION.departmentId);
+  });
+}
+function entryEmployees(){
+  return scopedEmployees().filter(e=>e.status==='Active');
+}
+function rowValues(emp){
+  const key = draftKey(emp.empCode);
+  const mem = entryDraft[key];
+  if(mem) return mem;
+  const d = DB.drafts[key];
+  if(d && d.pairs){
+    const o = {};
+    d.pairs.forEach((pr,i)=>{ o['p'+(i+1)]=pr.p||''; o['h'+(i+1)]=pr.h||''; });
+    return o;
+  }
+  return {};
+}
+function rowStatus(emp){
+  const d = DB.drafts[draftKey(emp.empCode)];
+  return d ? d.status : '—';
+}
 function renderEntry(){
   if(!pageAllowed('dailyentry')){ VIEW='dashboard'; return renderDashboard(); }
-  const mgrPool = isAdmin() ? activeManagers() : activeManagers().filter(m=>m.departmentId===SESSION.departmentId);
-  if(!window.__entryMgr || !mgrPool.find(m=>m.empCode===window.__entryMgr)) window.__entryMgr = mgrPool[0]?.empCode||'';
   if(!window.__entryDate) window.__entryDate = new Date().toISOString().slice(0,10);
-  const mgrOptions = mgrPool.map(m=>`<option value="${m.empCode}" ${window.__entryMgr===m.empCode?'selected':''}>${m.name}</option>`).join('');
-  const projOpts = ['<option value="">—</option>'].concat(openProjects().map(p=>`<option value="${p.code}">${p.code}</option>`)).join('');
-  const teamEmps = DB.employees.filter(e=>e.managerId===window.__entryMgr && e.status==='Active');
-  const rows = teamEmps.map(e=>{
-    const d = entryDraft[e.empCode] || {};
+  const emps = entryEmployees();
+  const projs = permittedProjects();
+  const projDL = `<datalist id="projDL">${projs.map(p=>`<option value="${p.code}">${p.name}</option>`).join('')}</datalist>`;
+  const canDraft = can('save_draft','dailyentry') || can('add','dailyentry');
+  const canSub = can('submit','dailyentry');
+  const canDel = can('delete','dailyentry');
+  const canReopen = isAdmin() || can('reopen','dailyentry');
+
+  const rows = emps.map(e=>{
+    const key = draftKey(e.empCode);
+    const v = rowValues(e);
+    const status = rowStatus(e);
+    const locked = (status==='Submitted') && !canReopen ? true : (status==='Submitted');
     let total = 0;
     const pairCells = [1,2,3,4,5,6].map(i=>{
-      const pv = d['p'+i]||''; const hv = d['h'+i]||'';
-      if(pv && hv) total += Number(hv)||0;
+      const pv = v['p'+i]||'', hv = v['h'+i]||'';
+      if(pv && Number(hv)>0) total += Number(hv);
       return `<td class="${i%2===1?'pair-sep':''}">
-        <select class="proj-select" onchange="updateDraft('${e.empCode}','p${i}',this.value)">
-          ${projOpts.replace('value="'+pv+'"','value="'+pv+'" selected')}
-        </select></td>
-      <td><input class="hrs-input" type="number" min="0" step="0.5" value="${hv}" onchange="updateDraft('${e.empCode}','h${i}',this.value)"></td>`;
+        <input class="proj-select" list="projDL" value="${pv}" placeholder="Proj ID" ${locked?'disabled':''}
+          onchange="updateDraft('${key}','p${i}',this.value)"></td>
+      <td><input class="hrs-input" type="number" min="0" step="0.05" value="${hv}" ${locked?'disabled':''}
+          onchange="updateDraft('${key}','h${i}',this.value)"></td>`;
     }).join('');
+    const statusPill = status==='Submitted' ? '<span class="badge-pill pill-active">Submitted</span>'
+      : status==='Draft' ? '<span class="badge-pill" style="background:var(--warn-bg);color:var(--warn-ink);">Draft</span>'
+      : '<span class="badge-pill pill-inactive">—</span>';
+    const reopenBtn = (status==='Submitted' && canReopen) ? `<button class="btn btn-sm btn-ghost" onclick="reopenEntry('${key}')">↩ Reopen (Edit)</button>` : '';
     return `<tr>
       <td class="static grid-code">${e.empCode}</td>
-      <td class="static">${e.designation}</td>
+      <td class="static">${e.designation||''}</td>
       <td class="static">${e.name}</td>
       ${pairCells}
-      <td class="total-cell">${total>0?total:''}</td>
+      <td class="total-cell">${total>0?(+total.toFixed(2)):''}</td>
+      <td>${statusPill} ${reopenBtn}</td>
     </tr>`;
   }).join('');
-  const html = `
+
+  const html2 = `
+    ${projDL}
     <div class="toolbar">
-      <div class="field"><label>Select Manager</label>
-        <select ${mgrPool.length<=1?'disabled':''} onchange="window.__entryMgr=this.value; renderApp();">${mgrOptions||'<option>— No managers yet —</option>'}</select></div>
       <div class="field"><label>Timesheet Date</label>
-        <input type="date" value="${window.__entryDate}" onchange="window.__entryDate=this.value; renderApp();"></div>
-      <button class="btn btn-primary" onclick="submitEntry()">✅ Submit Timesheet</button>
-      <button class="btn btn-ghost" onclick="clearEntry()">🗑️ Clear</button>
+        <input type="date" value="${window.__entryDate}" onchange="window.__entryDate=this.value; entryDraft={}; renderApp();"></div>
+      ${canDraft?'<button class="btn btn-ghost" onclick="saveDraftAll()">💾 Save Draft</button>':''}
+      ${canSub?'<button class="btn btn-primary" onclick="confirmSubmit()">✅ Submit</button>':''}
+      ${canDel?'<button class="btn btn-danger" onclick="deleteDrafts()">🗑️ Delete Draft</button>':''}
+      <button class="btn btn-ghost" onclick="entryDraft={}; toast(\'Cleared unsaved edits\'); renderApp();">♻️ Reset / Clear</button>
       ${bulkBtn('timesheets')}
     </div>
-    <div class="card"><h2>📝 Daily Time Entry <span class="badge">${teamEmps.length} employees</span></h2>
-      ${teamEmps.length===0? `<div class="empty-state"><div class="ic">🧑‍🏭</div>${mgrPool.length? 'No active employees report to this manager yet. Assign employees a "Reports To" manager on the Employees page.' : 'No managers exist yet. On the Employees page, add employees and mark at least one as "Is Manager = Yes".'}</div>` : `
+    <div class="card"><h2>📝 Daily Entry <span class="badge">${emps.length} employee(s) in your scope · max ${DB.settings.maxDailyHours} hrs/day</span></h2>
+      ${emps.length===0? `<div class="empty-state"><div class="ic">🧑‍🏭</div>No active employees in your scope.${isAdmin()?' Add them on the Employee Master page.':' Ask your Admin to link your account to an Employee ID.'}</div>` : `
       <div class="entry-grid-wrap">
         <table class="entry-grid">
           <thead><tr>
-            <th>Emp ID</th><th>Designation</th><th>Name</th>
-            <th>Proj 1</th><th>Hrs</th><th>Proj 2</th><th>Hrs</th><th>Proj 3</th><th>Hrs</th>
-            <th>Proj 4</th><th>Hrs</th><th>Proj 5</th><th>Hrs</th><th>Proj 6</th><th>Hrs</th><th>Total Hrs</th>
+            <th>Emp ID</th><th>Designation</th><th>Name of Employee</th>
+            <th>Proj ID1</th><th>Hrs</th><th>Proj ID2</th><th>Hrs</th><th>Proj ID3</th><th>Hrs</th>
+            <th>Proj ID4</th><th>Hrs</th><th>Proj ID5</th><th>Hrs</th><th>Proj ID6</th><th>Hrs</th>
+            <th>Total hrs</th><th>Status</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
-      </div>`}
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px;">Type in a Proj ID box to search the active project list · Total hrs is calculated automatically · Submitted rows lock until ${canReopen?'reopened':'an Admin reopens them'}.</div>`}
     </div>`;
-  renderShell(html, '📝 Daily Entry', 'Enter hours per project — rates apply automatically in the background');
+  renderShell(html2, '📝 Daily Entry', 'Save as Draft, then Submit — submitted entries flow to the Timesheet page');
 }
-function updateDraft(empCode, key, val){
-  entryDraft[empCode] = entryDraft[empCode]||{};
-  entryDraft[empCode][key] = val;
+function updateDraft(key, field, val){
+  entryDraft[key] = entryDraft[key] || {...rowValuesByKey(key)};
+  entryDraft[key][field] = val;
+  renderApp();
 }
-function clearEntry(){ entryDraft = {}; toast('Entry grid cleared'); renderApp(); }
-async function submitEntry(){
-  if(!window.__entryMgr){ toast('Please select a manager', true); return; }
-  if(!window.__entryDate){ toast('Please select a date', true); return; }
-  const mgr = window.__entryMgr;
-  const mgrEmp = DB.employees.find(e=>e.empCode===mgr);
-  let newRows = []; let dupeError = null;
-  for(const empCode of Object.keys(entryDraft)){
-    const d = entryDraft[empCode];
-    const pairs = [1,2,3,4,5,6].map(i=>({p:d['p'+i], h:Number(d['h'+i])||0})).filter(x=>x.p && x.h>0);
-    const ids = pairs.map(x=>x.p);
-    if(new Set(ids).size !== ids.length){ dupeError = empCode; break; }
-    const emp = DB.employees.find(e=>e.empCode===empCode);
-    pairs.forEach(pr=>{
-      newRows.push({
-        id:'T'+Date.now()+Math.random().toString(36).slice(2,7),
-        date: window.__entryDate, empId: empCode, designation: emp.designation,
-        rate: emp.rate, name: emp.name, projectId: pr.p, hours: pr.h,
-        managerId: mgr,
-        departmentId: emp.departmentId || (mgrEmp?mgrEmp.departmentId:null) || SESSION.departmentId || null,
-        submittedBy: SESSION.name, submittedAt: new Date().toISOString(), batchId: 'B'+Date.now()
-      });
-    });
+function rowValuesByKey(key){
+  const d = DB.drafts[key];
+  const o = {};
+  if(d && d.pairs) d.pairs.forEach((pr,i)=>{ o['p'+(i+1)]=pr.p||''; o['h'+(i+1)]=pr.h||''; });
+  return o;
+}
+function collectPairs(v){
+  return [1,2,3,4,5,6].map(i=>({p:String(v['p'+i]||'').trim(), h:v['h'+i]===''||v['h'+i]==null? null : Number(v['h'+i])}));
+}
+function validateRow(emp, pairs){
+  const errs = [];
+  const filled = pairs.filter(pr=>pr.p || (pr.h!=null && pr.h!==0));
+  const seen = new Set();
+  let total = 0;
+  for(const pr of filled){
+    if(pr.p && (pr.h==null || pr.h===0)) errs.push(`${emp.empCode}: Project ${pr.p} has no hours — enter hours or clear the Project ID.`);
+    if(!pr.p && pr.h!=null && pr.h>0) errs.push(`${emp.empCode}: Hours entered without selecting a Project ID.`);
+    if(pr.h!=null && (isNaN(pr.h) || pr.h<0)) errs.push(`${emp.empCode}: Invalid hours "${pr.h}" — numbers only, no negatives.`);
+    if(pr.p){
+      if(seen.has(pr.p)) errs.push(`${emp.empCode}: This Project ID has already been selected in this Daily Entry. Please select a different project. (${pr.p})`);
+      seen.add(pr.p);
+      if(!permittedProjects().find(x=>String(x.code)===pr.p)) errs.push(`${emp.empCode}: Project "${pr.p}" is not an active/permitted project.`);
+    }
+    if(pr.p && pr.h>0) total += pr.h;
   }
-  if(dupeError){ toast('Duplicate project selected twice for '+dupeError, true); return; }
-  if(newRows.length===0){ toast('No timesheet data entered', true); return; }
-  DB.timesheets = DB.timesheets.concat(newRows);
-  await save('timesheets');
-  await logActivity('SUBMIT_TIMESHEET', `${newRows.length} rows for ${fmtDate(window.__entryDate)} (${managerName(mgr)}'s team)`);
+  if(total > (DB.settings.maxDailyHours||24)) errs.push(`${emp.empCode}: Total ${total} hrs exceeds the daily limit of ${DB.settings.maxDailyHours} hrs.`);
+  if(emp.status!=='Active') errs.push(`${emp.empCode}: Employee is not Active.`);
+  return {errs, valid: filled.filter(pr=>pr.p && pr.h>0), total};
+}
+async function saveDraftAll(){
+  if(!(can('save_draft','dailyentry')||can('add','dailyentry'))){ toast('You do not have Save Draft permission', true); return; }
+  let saved = 0;
+  for(const emp of entryEmployees()){
+    const key = draftKey(emp.empCode);
+    if(!entryDraft[key]) continue;                       // untouched row
+    if(DB.drafts[key] && DB.drafts[key].status==='Submitted'){ continue; }
+    const pairs = collectPairs(entryDraft[key]);
+    if(!pairs.some(pr=>pr.p || pr.h)){ delete DB.drafts[key]; continue; }
+    DB.drafts[key] = {empId:emp.empCode, date:window.__entryDate,
+      pairs: pairs.map(pr=>({p:pr.p, h:pr.h==null?'':pr.h})),
+      status:'Draft', updatedBy:SESSION.name, updatedAt:new Date().toISOString()};
+    await logActivity('DRAFT_SAVED', `Daily Entry draft saved for ${emp.empCode} (${emp.name}) on ${fmtDate(window.__entryDate)}`, {page:'Daily Entry', recordId:key});
+    saved++;
+  }
+  await save('drafts');
   entryDraft = {};
-  toast(`Timesheet submitted — ${newRows.length} rows saved`);
+  toast(saved? `Draft saved for ${saved} row(s) — visible only on this page until submitted` : 'No changes to save');
+  renderApp();
+}
+function confirmSubmit(){
+  if(!can('submit','dailyentry')){ toast('You do not have Submit permission', true); return; }
+  // pre-validate to fail fast
+  const candidates = [];
+  const allErrs = [];
+  for(const emp of entryEmployees()){
+    const key = draftKey(emp.empCode);
+    const status = rowStatus(emp);
+    if(status==='Submitted') continue;                    // never resubmit — duplicate protection
+    const v = entryDraft[key] || rowValuesByKey(key);
+    const pairs = collectPairs(v);
+    if(!pairs.some(pr=>pr.p || pr.h)) continue;
+    const {errs, valid} = validateRow(emp, pairs);
+    if(errs.length) allErrs.push(...errs);
+    else if(valid.length) candidates.push({emp, key, valid, pairs});
+  }
+  if(allErrs.length){
+    showBulkResult({created:0,updated:0,skipped:0,errors:allErrs.map((e,i)=>({row:'-',col:'-',reason:e,fix:'Correct this and try again'})),warnings:[],noun:'entr(ies)'});
+    return;
+  }
+  if(!candidates.length){ toast('Nothing to submit — enter project hours first (already-submitted rows are skipped)', true); return; }
+  document.getElementById('modalRoot')?.remove();
+  const div = document.createElement('div'); div.id='modalRoot';
+  div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
+    <div class="modal">
+      <h3>Confirm Submission</h3>
+      <p style="font-size:13.5px;">Are you sure you want to submit this daily entry? After submission, the entry will be reflected in the Timesheet page.</p>
+      <p style="font-size:12.5px;color:var(--muted);">${candidates.length} row(s) will be submitted for ${fmtDate(window.__entryDate)}. Submitted rows lock and cannot be edited unless an Admin reopens them.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="document.getElementById('modalRoot')?.remove(); submitEntries();">Yes, Submit</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(div);
+}
+async function submitEntries(){
+  let submitted = 0, rowsCreated = 0;
+  for(const emp of entryEmployees()){
+    const key = draftKey(emp.empCode);
+    if(rowStatus(emp)==='Submitted') continue;
+    const v = entryDraft[key] || rowValuesByKey(key);
+    const pairs = collectPairs(v);
+    if(!pairs.some(pr=>pr.p || pr.h)) continue;
+    const {errs, valid} = validateRow(emp, pairs);
+    if(errs.length || !valid.length) continue;
+    // duplicate protection: remove any timesheet rows previously created from this key
+    DB.timesheets = DB.timesheets.filter(t=>t.sourceKey!==key);
+    valid.forEach(pr=>{
+      DB.timesheets.push({
+        id:'T'+Date.now()+Math.random().toString(36).slice(2,7),
+        date: window.__entryDate, empId: emp.empCode, designation: emp.designation||'',
+        rate: emp.rate||0, name: emp.name, projectId: pr.p, hours: pr.h,
+        managerId: emp.managerId || null, departmentId: emp.departmentId || null,
+        sourceKey: key, submittedBy: SESSION.name, submittedAt: new Date().toISOString(), batchId:'B'+Date.now()
+      });
+      rowsCreated++;
+    });
+    DB.drafts[key] = {empId:emp.empCode, date:window.__entryDate,
+      pairs: pairs.map(pr=>({p:pr.p, h:pr.h==null?'':pr.h})),
+      status:'Submitted', submittedBy:SESSION.name, submittedAt:new Date().toISOString()};
+    await logActivity('SUBMIT', `Daily Entry submitted for ${emp.empCode} (${emp.name}) on ${fmtDate(window.__entryDate)} — ${valid.length} project row(s) created on Timesheet`, {page:'Daily Entry', recordId:key});
+    submitted++;
+  }
+  await save('timesheets'); await save('drafts');
+  entryDraft = {};
+  toast(`Submitted ${submitted} entr(ies) — ${rowsCreated} Timesheet row(s) created`);
+  renderApp();
+}
+async function reopenEntry(key){
+  if(!(isAdmin() || can('reopen','dailyentry'))){ toast('Only an Admin can reopen a submitted entry', true); return; }
+  const d = DB.drafts[key];
+  if(!d || d.status!=='Submitted') return;
+  const oldRows = DB.timesheets.filter(t=>t.sourceKey===key);
+  DB.timesheets = DB.timesheets.filter(t=>t.sourceKey!==key);
+  d.status = 'Draft'; d.reopenedBy = SESSION.name; d.reopenedAt = new Date().toISOString();
+  await save('timesheets'); await save('drafts');
+  await logActivity('REOPEN', `Submitted entry ${key} returned to Draft by ${SESSION.name} — ${oldRows.length} Timesheet row(s) withdrawn (original values: ${oldRows.map(r=>r.projectId+':'+r.hours+'h').join(', ')||'none'})`, {page:'Daily Entry', recordId:key, changes: oldRows.map(r=>({field:'timesheet '+r.projectId, oldValue:r.hours+' hrs', newValue:'withdrawn to draft'}))});
+  toast('Entry reopened — it is a Draft again and its Timesheet rows were withdrawn (recorded in the audit log)');
+  renderApp();
+}
+async function deleteDrafts(){
+  if(!can('delete','dailyentry') && !isAdmin()){ toast('You do not have Delete permission', true); return; }
+  const keys = Object.keys(DB.drafts).filter(k=>{
+    const d = DB.drafts[k];
+    return d.date===window.__entryDate && d.status==='Draft' && entryEmployees().some(e=>e.empCode===d.empId);
+  });
+  if(!keys.length){ toast('No drafts to delete for this date (submitted entries are not deleted here)', true); return; }
+  for(const k of keys){
+    await logActivity('DELETE', `Daily Entry draft deleted for ${DB.drafts[k].empId} on ${fmtDate(window.__entryDate)}`, {page:'Daily Entry', recordId:k});
+    delete DB.drafts[k];
+  }
+  await save('drafts');
+  entryDraft = {};
+  toast(`${keys.length} draft(s) deleted`);
   renderApp();
 }
 
@@ -1435,7 +1848,8 @@ function renderDepartments(){
       <td style="white-space:normal;max-width:380px;">${pages}</td>
       <td>${colRestrictions? colRestrictions+' page(s) restricted' : 'All columns'}</td>
       <td>${DB.users.filter(u=>u.departmentId===d.id).length} user(s)</td>
-      <td><button class="btn btn-sm btn-ghost" onclick="openDeptModal('${d.id}')">Edit Access</button>
+      <td><button class="btn btn-sm btn-ghost" onclick="openPermsModal('dept','${d.id}')">Permissions</button>
+          <button class="btn btn-sm btn-ghost" onclick="renameDept('${d.id}')">Rename</button>
           <button class="btn btn-sm btn-danger" onclick="deleteDept('${d.id}')">Delete</button></td>
     </tr>`;
   }).join('');
@@ -1450,7 +1864,16 @@ function renderDepartments(){
         <tbody>${rows.length?rows:'<tr><td colspan="5"><div class="empty-state"><div class="ic">🏢</div>No departments yet. Add your first department above, then set its page and column permissions.</div></td></tr>'}</tbody>
       </table></div>
     </div>`;
-  renderShell(html, '🏢 Departments & Access', 'Decide which department sees which pages — and which columns inside each page');
+  renderShell(html, '🏢 Department Management', 'Create departments and control page, column, and action permissions');
+}
+async function renameDept(id){
+  const d = DB.departments.find(x=>x.id===id);
+  const n = prompt('New department name:', d.name);
+  if(!n || !n.trim()) return;
+  const old = d.name; d.name = n.trim();
+  await save('departments');
+  await logActivity('UPDATE', `Department renamed: "${old}" → "${d.name}"`, {page:'Department Management', recordId:id, changes:[{field:'name', oldValue:old, newValue:d.name}]});
+  toast('Department renamed'); renderApp();
 }
 async function addDept(){
   const name = document.getElementById('newDeptName').value.trim();
@@ -1472,116 +1895,117 @@ async function deleteDept(id){
   await logActivity('DELETE', `Department "${d.name}" deleted`);
   toast('Department deleted'); renderApp();
 }
-function openDeptModal(id){
-  const d = DB.departments.find(x=>x.id===id);
-  const pageRows = PAGES.map(p=>{
-    const checked = (d.pages||[]).includes(p.id);
-    const colDef = COLS[p.id];
-    const restricted = (d.cols||{})[p.id];
-    const colChecks = colDef ? `<div class="perm-cols" id="cols_${p.id}" style="display:${checked?'flex':'none'}">
-      ${colDef.map(c=>{
-        const colOn = !restricted || restricted.includes(c.key);
-        return `<label><input type="checkbox" data-page="${p.id}" data-col="${c.key}" ${colOn?'checked':''}> ${c.label}</label>`;
-      }).join('')}
-    </div>` : '';
-    return `<div class="perm-page-row">
-      <div class="pg"><input type="checkbox" id="pg_${p.id}" ${checked?'checked':''}
-        onchange="const c=document.getElementById('cols_${p.id}'); if(c) c.style.display=this.checked?'flex':'none';">
-        <span>${p.icon} ${p.label}</span>
-        ${colDef?'<span style="font-size:10.5px;color:var(--muted);font-weight:600;margin-left:auto;">column access ⇩</span>':''}
-      </div>
-      ${colChecks}
-    </div>`;
-  }).join('');
-  document.getElementById('modalRoot')?.remove();
-  const div = document.createElement('div'); div.id='modalRoot';
-  div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
-    <div class="modal" style="max-width:600px;">
-      <h3>🏢 ${d.name} — Page & Column Access</h3>
-      <div class="field"><label>Department name</label><input id="d_name" value="${d.name}"></div>
-      <div style="font-size:12px;color:var(--muted);margin:4px 0 12px;">Tick the pages this department can open. For data pages, untick columns to hide them from this department. Unticked pages disappear completely from their sidebar.</div>
-      ${pageRows}
-      <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot').remove()">Cancel</button>
-        <button class="btn btn-primary" onclick="saveDept('${d.id}')">Save Permissions</button>
-      </div>
-    </div></div>`;
-  document.body.appendChild(div);
-}
-async function saveDept(id){
-  const d = DB.departments.find(x=>x.id===id);
-  d.name = document.getElementById('d_name').value.trim() || d.name;
-  d.pages = PAGES.filter(p=>document.getElementById('pg_'+p.id).checked).map(p=>p.id);
-  d.cols = {};
-  for(const pid of Object.keys(COLS)){
-    if(!d.pages.includes(pid)) continue;
-    const boxes = [...document.querySelectorAll(`input[data-page="${pid}"]`)];
-    const on = boxes.filter(b=>b.checked).map(b=>b.dataset.col);
-    if(on.length < COLS[pid].length) d.cols[pid] = on; // only store when actually restricted
-  }
-  await save('departments');
-  await logActivity('PERMISSION_CHANGE', `Permissions updated for department "${d.name}" — pages: [${d.pages.join(', ')}]${Object.keys(d.cols).length? ' | column restrictions on: '+Object.keys(d.cols).join(', '):''}`, {page:'Departments & Access'});
-  document.getElementById('modalRoot').remove();
-  toast('Permissions saved — applies immediately to all users of this department');
-  renderApp();
-}
-
 /* =========================================================
-   USERS (admin)
+   USER MANAGEMENT (admin only) — create/edit/suspend users,
+   temp passwords, per-user page/column/action overrides,
+   record-level data scope, login history.
    ========================================================= */
 function renderUsers(){
   if(!isAdmin()){ VIEW='dashboard'; return renderDashboard(); }
-  const rows = DB.users.map(u=>`<tr>
-    <td style="font-weight:700;">${u.name}</td>
-    <td><span class="badge-pill ${u.role==='admin'?'pill-active':'pill-inactive'}">${u.role}</span></td>
-    <td>${u.role==='admin'?'All departments':deptName(u.departmentId)}</td>
-    <td>${u.uid!=='admin'?`<button class="btn btn-sm btn-ghost" onclick="openUserModal('${u.uid}')">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.uid}')">Remove</button>`:''}</td>
-  </tr>`).join('');
-  const deptOpts = DB.departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
-  const html = `
-    <div class="card"><h2>➕ Add User</h2>
-      ${DB.departments.length===0? '<div class="scope-banner">💡 Create at least one Department first (Departments & Access page) so you can assign users to it.</div>':''}
+  const rows = DB.users.map(u=>{
+    const st = u.status||'Active';
+    const stPill = st==='Active' ? '<span class="badge-pill pill-active">Active</span>'
+      : st==='Suspended' ? '<span class="badge-pill" style="background:var(--warn-bg);color:var(--warn-ink);">Suspended</span>'
+      : '<span class="badge-pill pill-inactive">Deactivated</span>';
+    return `<tr>
+      <td style="font-weight:700;">${u.name}</td>
+      <td>${u.email||'—'}</td>
+      <td class="grid-code">${u.empId||'—'}</td>
+      <td><span class="badge-pill ${u.role==='admin'?'pill-active':'pill-inactive'}">${u.role}</span></td>
+      <td>${u.role==='admin'?'All':deptName(u.departmentId)}</td>
+      <td>${u.role==='admin'?'all':(u.scope||'own')}</td>
+      <td>${stPill}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-sm btn-ghost" onclick="openUserModal('${u.uid}')">Edit</button>
+        ${u.role!=='admin'?`<button class="btn btn-sm btn-ghost" onclick="openPermsModal('user','${u.uid}')">Permissions</button>`:''}
+        <button class="btn btn-sm btn-ghost" onclick="resetUserPassword('${u.uid}')">Reset PW</button>
+        <button class="btn btn-sm btn-ghost" onclick="showUserHistory('${u.uid}')">History</button>
+        ${DB.users.filter(x=>x.role==='admin').length>1 || u.role!=='admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteUser('${u.uid}')">Remove</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+  const html2 = `
+    <div class="card"><h2>➕ Create User <span class="badge">admin-only — no public sign-up exists</span></h2>
+      ${DB.departments.length===0? '<div class="scope-banner">💡 Create at least one Department first (Department Management) to assign users properly.</div>':''}
       <div class="toolbar" style="margin-bottom:0;">
+        <div class="field"><label>Employee ID (link)</label><input id="u_empId" list="empDL" placeholder="e.g. SHP2101">
+          <datalist id="empDL">${DB.employees.map(e=>`<option value="${e.empCode}">${e.name}</option>`).join('')}</datalist></div>
         <div class="field"><label>Name</label><input id="u_name" placeholder="Full name"></div>
-        <div class="field"><label>Role</label><select id="u_role" onchange="document.getElementById('u_deptWrap').style.display=this.value==='user'?'flex':'none'">
-          <option value="user">Department User</option><option value="admin">Admin</option></select></div>
-        <div class="field" id="u_deptWrap"><label>Department</label><select id="u_dept">${deptOpts||'<option value="">— create a department first —</option>'}</select></div>
+        <div class="field"><label>Email (login ID)</label><input id="u_email" type="email" placeholder="name@company.com"></div>
+        <div class="field"><label>Temporary password</label><input id="u_pw" type="text" placeholder="min 6 chars"></div>
+        <div class="field"><label>Role</label><select id="u_role"><option value="user">Department User</option><option value="admin">Admin</option></select></div>
+        <div class="field"><label>Department</label><select id="u_dept">${['<option value="">—</option>'].concat(DB.departments.map(d=>`<option value="${d.id}">${d.name}</option>`)).join('')}</select></div>
+        <div class="field"><label>Data scope</label><select id="u_scope">
+          <option value="own">Own entries only</option><option value="team">Own + reporting team</option>
+          <option value="department">Whole department</option><option value="all">All company data</option></select></div>
         <button class="btn btn-primary" onclick="addUser()">+ Create User</button>
-        ${bulkBtn('users')}
       </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px;">The user signs in with this email + temporary password and is forced to set their own password on first login. Designation & manager come automatically from the linked Employee ID.</div>
     </div>
-    <div class="card"><h2>🔑 Users <span class="badge">${DB.users.length}</span></h2>
+    <div class="card"><h2>🔑 User Management <span class="badge">${DB.users.length}</span></h2>
       <div class="table-scroll"><table>
-        <thead><tr><th>Name</th><th>Role</th><th>Department</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Email</th><th>Emp ID</th><th>Role</th><th>Department</th><th>Scope</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
     </div>`;
-  renderShell(html, '🔑 Users', 'Create accounts and assign them to departments');
+  renderShell(html2, '🔑 User Management', 'Create accounts, assign departments, roles, scopes, and per-user permissions');
+}
+async function createAuthAccount(email, pw){
+  /* Firebase mode: create the auth user on a secondary app so the admin session is untouched */
+  if(!FB_MODE) return {ok:true};
+  try{
+    let sec = firebase.apps.find(a=>a.name==='secondary');
+    if(!sec) sec = firebase.initializeApp(FIREBASE_CONFIG, 'secondary');
+    await sec.auth().createUserWithEmailAndPassword(email, pw);
+    await sec.auth().signOut();
+    return {ok:true};
+  }catch(e){
+    if(e.code==='auth/email-already-in-use') return {ok:true, existed:true};
+    return {ok:false, msg:e.message||e.code};
+  }
 }
 async function addUser(){
+  const empId = document.getElementById('u_empId').value.trim();
   const name = document.getElementById('u_name').value.trim();
+  const email = document.getElementById('u_email').value.trim().toLowerCase();
+  const pw = document.getElementById('u_pw').value;
   const role = document.getElementById('u_role').value;
-  const dept = document.getElementById('u_dept') ? document.getElementById('u_dept').value : '';
-  if(!name){ toast('Name is required', true); return; }
+  const dept = document.getElementById('u_dept').value;
+  const scope = document.getElementById('u_scope').value;
+  if(!name || !email){ toast('Name and email are required', true); return; }
+  if(pw.length<6){ toast('Temporary password must be at least 6 characters', true); return; }
+  if(DB.users.find(x=>String(x.email||'').toLowerCase()===email)){ toast('A user with this email already exists', true); return; }
   if(role==='user' && !dept){ toast('Assign a department to this user', true); return; }
-  DB.users.push({uid:'U'+Date.now(), name, role, departmentId: role==='user'?dept:null});
+  const emp = DB.employees.find(e=>e.empCode===empId);
+  const res = await createAuthAccount(email, pw);
+  if(!res.ok){ toast('Could not create login: '+res.msg, true); return; }
+  DB.users.push({uid:'U'+Date.now(), name, email, empId: empId||null,
+    designation: emp?emp.designation:null, managerId: emp?emp.managerId:null,
+    role, departmentId: role==='user'?dept:null, scope: role==='admin'?'all':scope,
+    status:'Active', mustChangePassword:true, pwHash: FB_MODE? null : hashPw(pw),
+    createdAt:new Date().toISOString(), createdBy:SESSION.name});
   await save('users');
-  await logActivity('CREATE', `User "${name}" created (${role}${role==='user'?', '+deptName(dept):''})`);
-  toast('User created'); renderApp();
+  await logActivity('USER_CREATED', `User "${name}" (${email}) created — role ${role}${role==='user'?', '+deptName(dept)+', scope '+scope:''}`, {page:'User Management', recordId:email});
+  toast('User created — share the email and temporary password with them privately');
+  renderApp();
 }
 function openUserModal(uid){
   const u = DB.users.find(x=>x.uid===uid);
-  const deptOpts = DB.departments.map(d=>`<option value="${d.id}" ${u.departmentId===d.id?'selected':''}>${d.name}</option>`).join('');
+  const deptOpts = ['<option value="">—</option>'].concat(DB.departments.map(d=>`<option value="${d.id}" ${u.departmentId===d.id?'selected':''}>${d.name}</option>`)).join('');
   document.getElementById('modalRoot')?.remove();
   const div = document.createElement('div'); div.id='modalRoot';
   div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
     <div class="modal">
-      <h3>Edit User</h3>
+      <h3>Edit User — ${u.name}</h3>
       <div class="field"><label>Name</label><input id="eu_name" value="${u.name}"></div>
+      <div class="field"><label>Employee ID (link)</label><input id="eu_empId" list="empDL" value="${u.empId||''}"></div>
       <div class="field"><label>Role</label><select id="eu_role"><option value="user" ${u.role==='user'?'selected':''}>Department User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option></select></div>
-      <div class="field"><label>Department</label><select id="eu_dept">${deptOpts||'<option value="">—</option>'}</select></div>
+      <div class="field"><label>Department</label><select id="eu_dept">${deptOpts}</select></div>
+      <div class="field"><label>Data scope</label><select id="eu_scope">
+        ${['own','team','department','all'].map(s=>`<option value="${s}" ${(u.scope||'own')===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="field"><label>Account status</label><select id="eu_status">
+        ${['Active','Suspended','Deactivated'].map(s=>`<option ${(u.status||'Active')===s?'selected':''}>${s}</option>`).join('')}</select></div>
       <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot').remove()">Cancel</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
         <button class="btn btn-primary" onclick="saveUser('${uid}')">Save</button>
       </div>
     </div></div>`;
@@ -1589,20 +2013,132 @@ function openUserModal(uid){
 }
 async function saveUser(uid){
   const u = DB.users.find(x=>x.uid===uid);
+  const before = {...u};
   u.name = document.getElementById('eu_name').value.trim() || u.name;
+  u.empId = document.getElementById('eu_empId').value.trim() || null;
   u.role = document.getElementById('eu_role').value;
   u.departmentId = u.role==='user' ? (document.getElementById('eu_dept').value||null) : null;
+  u.scope = u.role==='admin' ? 'all' : document.getElementById('eu_scope').value;
+  u.status = document.getElementById('eu_status').value;
+  const emp = DB.employees.find(e=>e.empCode===u.empId);
+  if(emp){ u.designation = emp.designation; u.managerId = emp.managerId; }
   await save('users');
-  await logActivity('UPDATE', `User "${u.name}" updated`);
-  document.getElementById('modalRoot').remove();
-  toast('User updated'); renderApp();
+  const ch = diffChanges(before, u, ['name','empId','role','departmentId','scope','status']);
+  await logActivity('USER_UPDATED', `User "${u.name}" updated`+(ch?' — '+ch.map(c=>`${c.field}: "${c.oldValue}" → "${c.newValue}"`).join('; '):''), {page:'User Management', recordId:u.email, changes:ch});
+  document.getElementById('modalRoot')?.remove();
+  toast('User updated'+((u.status!=='Active')?' — they can no longer sign in':''));
+  renderApp();
+}
+async function resetUserPassword(uid){
+  const u = DB.users.find(x=>x.uid===uid);
+  if(FB_MODE){
+    try{
+      await firebase.auth().sendPasswordResetEmail(u.email);
+      await logActivity('PASSWORD_RESET', `Password reset email sent to ${u.email} by ${SESSION.name}`, {page:'User Management', recordId:u.email});
+      toast('Password reset email sent to '+u.email);
+    }catch(e){ toast('Could not send reset email: '+(e.message||e.code), true); }
+    return;
+  }
+  const np = prompt('Enter a new temporary password for '+u.name+' (min 6 characters):');
+  if(!np) return;
+  if(np.length<6){ toast('Minimum 6 characters', true); return; }
+  u.pwHash = hashPw(np); u.mustChangePassword = true;
+  await save('users');
+  await logActivity('PASSWORD_RESET', `Temporary password set for ${u.email} by ${SESSION.name} (change forced on next login)`, {page:'User Management', recordId:u.email});
+  toast('Temporary password set — user must change it on next login');
+}
+function showUserHistory(uid){
+  const u = DB.users.find(x=>x.uid===uid);
+  const events = DB.activity.filter(a=> (a.user===u.name || a.recordId===u.email || a.recordId===u.uid) &&
+    ['LOGIN','LOGOUT','FAILED_LOGIN','PASSWORD_RESET','PASSWORD_CHANGE','USER_CREATED','USER_UPDATED','PERMISSION_CHANGE'].includes(a.action)).slice(0,50);
+  document.getElementById('modalRoot')?.remove();
+  const div = document.createElement('div'); div.id='modalRoot';
+  div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
+    <div class="modal" style="max-width:560px;">
+      <h3>🕒 Login & Account History — ${u.name}</h3>
+      ${events.length? events.map(a=>`<div class="actlog-row"><div class="actlog-dot"></div>
+        <div><div><b>${a.action}</b> — ${a.detail}</div>
+        <div class="actlog-meta">${new Date(a.ts).toLocaleString('en-IN')}</div></div></div>`).join('') : '<div class="empty-state">No recorded events yet.</div>'}
+      <div class="modal-actions"><button class="btn btn-primary" onclick="document.getElementById('modalRoot')?.remove()">Close</button></div>
+    </div></div>`;
+  document.body.appendChild(div);
 }
 async function deleteUser(uid){
   const u = DB.users.find(x=>x.uid===uid);
+  if(u.role==='admin' && DB.users.filter(x=>x.role==='admin').length<=1){ toast('Cannot remove the last Admin', true); return; }
   DB.users = DB.users.filter(x=>x.uid!==uid);
   await save('users');
-  await logActivity('DELETE', `User "${u.name}" removed`);
-  toast('User removed'); renderApp();
+  await logActivity('USER_DELETED', `User "${u.name}" (${u.email}) removed by ${SESSION.name}`, {page:'User Management', recordId:u.email});
+  toast('User removed'+(FB_MODE?' — note: their Firebase Auth login also needs removal in Firebase Console → Authentication':''));
+  renderApp();
+}
+
+/* =========================================================
+   SHARED PERMISSIONS EDITOR (departments & per-user overrides)
+   ========================================================= */
+function openPermsModal(kind, id){
+  const target = kind==='dept' ? DB.departments.find(d=>d.id===id) : DB.users.find(u=>u.uid===id);
+  const pp = target.pagePerms || {};
+  const cp = target.colPerms || {};
+  const legacyPages = Array.isArray(target.pages)? target.pages : null;
+  const pageRows = PAGES.map(p=>{
+    const acts = pp[p.id] || (legacyPages && legacyPages.includes(p.id) ? LEGACY_DEFAULT_ACTIONS : []);
+    const actBoxes = PAGE_ACTIONS.map(a=>`<label><input type="checkbox" data-pg="${p.id}" data-act="${a}" ${acts.includes(a)?'checked':''}> ${ACTION_LABELS[a]}</label>`).join('');
+    const colDef = COLS[p.id];
+    const colSelects = colDef? `<div class="perm-cols" style="display:flex;">
+      ${colDef.map(c=>{
+        const st = (cp[p.id]&&cp[p.id][c.key]) || (target.cols&&Array.isArray(target.cols[p.id])? (target.cols[p.id].includes(c.key)?'view':'hidden') : 'view');
+        return `<label style="gap:4px;">${c.label}
+          <select data-cpg="${p.id}" data-col="${c.key}" style="padding:2px 4px;font-size:11px;border:1px solid var(--border);border-radius:4px;">
+            <option value="hidden" ${st==='hidden'?'selected':''}>Hidden</option>
+            <option value="view" ${st==='view'?'selected':''}>View Only</option>
+            <option value="edit" ${st==='edit'?'selected':''}>Editable</option>
+          </select></label>`;
+      }).join('')}
+    </div>` : '';
+    return `<div class="perm-page-row">
+      <div class="pg">${p.icon} ${p.label}
+        <span style="margin-left:auto;font-size:10.5px;color:var(--muted);">tick allowed actions</span></div>
+      <div class="perm-cols" style="display:flex;">${actBoxes}</div>
+      ${colSelects?'<div style="font-size:10.5px;color:var(--muted);margin:6px 0 2px;padding-left:2px;">Column access:</div>'+colSelects:''}
+    </div>`;
+  }).join('');
+  document.getElementById('modalRoot')?.remove();
+  const div = document.createElement('div'); div.id='modalRoot';
+  div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
+    <div class="modal" style="max-width:720px;">
+      <h3>🔐 ${kind==='dept'?'Department':'Per-User Override'} Permissions — ${target.name}</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">No View tick = the page disappears from this ${kind==='dept'?"department's":"user's"} menu and cannot be opened. ${kind==='user'?'Per-user settings override the department defaults.':''} Hidden columns vanish from tables AND exports.</div>
+      ${pageRows}
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="savePerms('${kind}','${id}')">Save Permissions</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(div);
+}
+async function savePerms(kind, id){
+  const target = kind==='dept' ? DB.departments.find(d=>d.id===id) : DB.users.find(u=>u.uid===id);
+  const pagePerms = {}, colPerms = {};
+  PAGES.forEach(p=>{
+    const acts = [...document.querySelectorAll(`input[data-pg="${p.id}"]`)].filter(b=>b.checked).map(b=>b.dataset.act);
+    if(acts.length) pagePerms[p.id] = acts;
+    const sels = [...document.querySelectorAll(`select[data-cpg="${p.id}"]`)];
+    if(sels.length){
+      const m = {};
+      let restricted = false;
+      sels.forEach(s=>{ m[s.dataset.col]=s.value; if(s.value!=='view') restricted=true; });
+      if(restricted) colPerms[p.id] = m;
+    }
+  });
+  target.pagePerms = pagePerms;
+  target.colPerms = colPerms;
+  if(kind==='dept'){ target.pages = Object.keys(pagePerms).filter(pid=>pagePerms[pid].includes('view')); delete target.cols; await save('departments'); }
+  else await save('users');
+  await logActivity('PERMISSION_CHANGE', `${kind==='dept'?'Department':'User'} "${target.name}" permissions updated — pages with View: [${Object.keys(pagePerms).filter(p=>pagePerms[p].includes('view')).join(', ')||'none'}]`, {page:kind==='dept'?'Department Management':'User Management', recordId:id});
+  document.getElementById('modalRoot')?.remove();
+  toast('Permissions saved — applies immediately (live) to affected users');
+  renderApp();
 }
 
 /* =========================================================
@@ -1655,11 +2191,39 @@ function renderApp(){
 (async function init(){
   document.getElementById('app').innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:#64757C;font-family:sans-serif;">Loading SHEPL dashboard…</div>';
   initFirebase();
-  try{ await loadAll(); }catch(e){ console.error(e); }
-  renderApp();
-  if(FB_MODE){ startFirebaseListeners(); }          // instant real-time for every user
-  else { setInterval(()=>{ syncFromStore().catch(()=>{}); }, 5000); } // local mode: cross-tab + polling
-  setInterval(()=>{ runBackup().catch(()=>{}); }, 30000); // auto-backup every 30 seconds
+  if(FB_MODE){
+    /* With locked security rules, data is readable only AFTER sign-in. */
+    renderLogin();
+    firebase.auth().onAuthStateChanged(async (fbUser)=>{
+      if(!fbUser){ if(!SESSION) renderLogin(); return; }
+      if(SESSION) return;
+      try{ await loadAll(); }catch(e){ console.error(e); }
+      const email = String(fbUser.email||'').toLowerCase();
+      let u = DB.users.find(x=>String(x.email||'').toLowerCase()===email);
+      if(!u && DB.users.length===0){
+        /* No profiles exist at all: the first successful sign-in becomes the Admin.
+           Covers both First-Time Setup and recovery after an interrupted setup. */
+        const nm = (window.__bootstrapIntent && window.__bootstrapIntent.email===email) ? window.__bootstrapIntent.name : email.split('@')[0];
+        u = {uid:'U'+Date.now(), name:nm, email, role:'admin', departmentId:null,
+          empId:null, scope:'all', status:'Active', mustChangePassword:false, createdAt:new Date().toISOString()};
+        DB.users.push(u); await save('users');
+        window.__bootstrapIntent = null;
+      }
+      if(!u){
+        renderLogin('This login exists but has no dashboard profile. Ask your Admin to create your user record with this email.');
+        try{ await firebase.auth().signOut(); }catch(e){}
+        return;
+      }
+      startFirebaseListeners();
+      setInterval(()=>{ runBackup().catch(()=>{}); }, 30000);
+      await establishSession(u);
+    });
+  } else {
+    try{ await loadAll(); }catch(e){ console.error(e); }
+    renderApp();
+    setInterval(()=>{ syncFromStore().catch(()=>{}); }, 5000);
+    setInterval(()=>{ runBackup().catch(()=>{}); }, 30000);
+  }
 })();
 </script>
 </body>
