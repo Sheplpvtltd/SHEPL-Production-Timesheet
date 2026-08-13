@@ -355,21 +355,26 @@ function rebuildTsView(){
   for(const arr of Object.values(TS.parts)) rows.push(...arr);
   DB.timesheets = rows;
 }
+const TS_FETCHES = {}; /* id -> promise, so overlapping loads wait for each other */
 async function tsEnsureMonths(months){
   await tsLoadManifest();
-  const need = [];
+  const waits = [];
   months.forEach(m=>{
     const n = TS.manifest.parts[m]||0;
-    for(let i=0;i<n;i++){ const id = partId(m,i); if(!(id in TS.parts) && !TS.inflight.has(id)) need.push(id); }
+    for(let i=0;i<n;i++){
+      const id = partId(m,i);
+      if(id in TS.parts) continue;
+      if(!TS_FETCHES[id]){
+        TS_FETCHES[id] = (async ()=>{
+          try{ const v = await storeGet(id); TS.parts[id] = v? JSON.parse(v) : []; }
+          catch(e){ TS.parts[id] = []; }
+          finally{ delete TS_FETCHES[id]; }
+        })();
+      }
+      waits.push(TS_FETCHES[id]);
+    }
   });
-  if(need.length){
-    need.forEach(id=>TS.inflight.add(id));
-    await Promise.all(need.map(async id=>{
-      try{ const v = await storeGet(id); TS.parts[id] = v? JSON.parse(v) : []; }
-      catch(e){ TS.parts[id] = []; }
-      finally{ TS.inflight.delete(id); }
-    }));
-  }
+  if(waits.length) await Promise.all(waits);
   rebuildTsView();
 }
 async function tsEnsureRange(from,to){
@@ -377,10 +382,18 @@ async function tsEnsureRange(from,to){
   await tsEnsureMonths(tsMonthsForRange(from,to));
 }
 function kickTsLoad(from,to){
-  if(window.__tsKick) return;
-  window.__tsKick = true;
-  tsEnsureRange(from,to).then(()=>{ window.__tsKick=false; if(SESSION && !uiBusy()) renderApp(); })
-    .catch(e=>{ console.error(e); window.__tsKick=false; });
+  const rangeKey = String(from||'')+'|'+String(to||'');
+  window.__tsKicks = window.__tsKicks || {};
+  if(window.__tsKicks[rangeKey]) return;
+  window.__tsKicks[rangeKey] = true;
+  tsEnsureRange(from,to).then(()=>{
+    delete window.__tsKicks[rangeKey];
+    if(SESSION && !document.getElementById('modalRoot')) renderApp();
+  }).catch(e=>{
+    console.error(e);
+    delete window.__tsKicks[rangeKey];
+    toast('⚠️ Loading timesheet pages failed — check internet and try again', true);
+  });
 }
 async function tsAppend(rows){
   if(!rows.length) return true;
@@ -455,8 +468,15 @@ async function tsInit(){
   }catch(e){ console.error('tsInit', e); }
 }
 function loadingCard(msg){
-  return `<div class="card"><div class="empty-state"><div class="ic">⏳</div>${msg}</div></div>`;
+  const total = TS.manifest ? Object.values(TS.manifest.parts).reduce((s,n)=>s+n,0) : 0;
+  const done = Object.keys(TS.parts).length;
+  const prog = total ? `<div style="margin-top:10px;font-family:var(--mono);font-size:13px;color:var(--teal-dark);font-weight:700;">${done} / ${total} cloud pages loaded</div>
+    <div style="max-width:340px;margin:8px auto 0;background:var(--bg);border-radius:6px;height:10px;overflow:hidden;"><div style="width:${Math.min(100,(done/Math.max(1,total)*100)).toFixed(0)}%;height:100%;background:linear-gradient(90deg,var(--teal),var(--mint));"></div></div>` : '';
+  return `<div class="card"><div class="empty-state"><div class="ic">⏳</div>${msg}${prog}</div></div>`;
 }
+setInterval(()=>{ /* refresh the progress bar while month pages download */
+  if(SESSION && window.__tsKicks && Object.keys(window.__tsKicks).length && !document.getElementById('modalRoot')) renderApp();
+}, 2000);
 
 async function loadAll(){
   for(const k of Object.keys(SKEY)){
