@@ -195,12 +195,12 @@ const LOGO_B64 = "R0lGODlhuwBmAHAAACwAAAAAuwBmAIX////m7+/37++E1sWl3s7v9/+t795Szq
    every user. Leave blank to run in local mode.
    ========================================================= */
 const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAiGzXIrEyJQaj6-4xvszUePzU7fxDBy-8",
+  authDomain: "shepl-production-timesheet.firebaseapp.com",
+  projectId: "shepl-production-timesheet",
+  storageBucket: "shepl-production-timesheet.firebasestorage.app",
+  messagingSenderId: "175901160076",
+  appId: "1:175901160076:web:79c4ef8e0bbb82eb2181a9"
 };
 
 const SKEY = {
@@ -394,7 +394,7 @@ const COLS = {
   ],
   /* Timesheet page — EXACT column order per approved spec */
   timesheets: [
-    {key:'date', label:'Date'}, {key:'empId', label:'EmpId'}, {key:'designation', label:'Designation'},
+    {key:'date', label:'TimeSheet Date'}, {key:'empId', label:'EmpId'}, {key:'designation', label:'Designation'},
     {key:'rate', label:'Rate Per hr'}, {key:'name', label:'Name'}, {key:'projectId', label:'Proj ID'},
     {key:'hours', label:'Hrs'}, {key:'managerId', label:'Manager ID of Entry'}
   ]
@@ -820,10 +820,12 @@ const BULK_CFG = {
     sheet:'TimeSheets', file:'TimeSheet_Bulk_Upload_Format.xlsx',
     cols: [
       ['TimeSheet Date','date',true,'date','The work date, e.g. 09-Jul-2026'],
-      ['EmpId','empId',true,'emp','Must already exist on the Employees page'],
-      ['Proj ID','projectId',true,'proj','Must already exist on the Project List page'],
+      ['EmpId','empId',true,'emp','Must already exist on the Employee Master page'],
+      ['Designation','designation',false,'text','Optional — auto-filled from Employee Master if left blank'],
+      ['Rate Per hr','rate',false,'number','Optional — blank uses the Employee Master rate'],
+      ['Name','name',false,'text','Optional — auto-filled from Employee Master if left blank'],
+      ['Proj ID','projectId',true,'proj','Must already exist on the Project Master page'],
       ['Hrs','hours',true,'number','Hours worked, greater than 0'],
-      ['Rate Per hr','rate',false,'number','Optional — blank uses the employee master rate'],
       ['Manager ID of Entry','managerId',false,'text','EmpID of the manager who supervised the work']
     ],
     aliases:{timesheetdate:'date',date:'date',empid:'empId',employeeid:'empId',projid:'projectId',projectid:'projectId',hrs:'hours',hours:'hours',rateperhr:'rate',rateperhour:'rate',rate:'rate',manageridofentry:'managerId',managerid:'managerId',manager:'managerId',designation:'designation',name:'name'}
