@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SHEPL Timesheet Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://shone-core-dev.web.app/shone-sso.js" data-module="TIMESHEET"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -1675,7 +1674,8 @@ async function runBackup(){
   const data = {
     employees:DB.employees, projects:DB.projects, users:DB.users,
     activity:DB.activity, departments:DB.departments, dropdowns:DB.dropdowns,
-    drafts:DB.drafts, settings:DB.settings
+    settings:DB.settings
+    /* drafts excluded: each date has its own cloud doc ts3_draft_YYYY-MM-DD */
   };
   const body = JSON.stringify(data);
   if(window.__lastBackupHash === body) return;
@@ -2533,6 +2533,49 @@ function validateRow(emp, pairs){
   if(emp.status!=='Active') errs.push(`${emp.empCode}: Employee is not Active.`);
   return {errs, valid: filled.filter(pr=>pr.p && pr.h>0), total};
 }
+
+/* =========================================================
+   DRAFT STORAGE v2 — one cloud document per date
+   (ts3_draft_YYYY-MM-DD) so the 1 MB single-doc limit
+   is never reached, no matter how many employees fill entries.
+   ========================================================= */
+function draftDocId(date){ return 'ts3_draft_'+(date||window.__entryDate||''); }
+
+async function loadDraftsForDate(date){
+  try{
+    const v = await storeGet(draftDocId(date));
+    const dateDrafts = v ? JSON.parse(v) : {};
+    let migrated = 0;
+    for(const [k,d] of Object.entries(DB.drafts||{})){
+      if((d.date||'')===date && !dateDrafts[k]){ dateDrafts[k]=d; migrated++; }
+    }
+    if(migrated){
+      await storeSet(draftDocId(date), JSON.stringify(dateDrafts));
+      for(const k of Object.keys(dateDrafts)) delete DB.drafts[k];
+      try{ await storeSet(SKEY.drafts, JSON.stringify(DB.drafts)); }catch(_){}
+    }
+    Object.assign(DB.drafts, dateDrafts);
+  }catch(e){ console.error('loadDraftsForDate', e); }
+}
+
+async function saveDraftsForDate(date){
+  const dateDrafts = {};
+  for(const [k,d] of Object.entries(DB.drafts)){
+    if((d.date||window.__entryDate)===date) dateDrafts[k]=d;
+  }
+  await storeSet(draftDocId(date), JSON.stringify(dateDrafts));
+}
+
+function purgeStaleDrafts(){
+  const cutoff = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+  let purged = 0;
+  for(const [k, d] of Object.entries(DB.drafts)){
+    if(d.status === 'Draft') continue;
+    const ts = d.submittedAt || d.updatedAt || '';
+    if(ts && ts < cutoff){ delete DB.drafts[k]; purged++; }
+  }
+  return purged;
+}
 async function saveDraftAll(){
   if(!(can('save_draft','dailyentry')||can('add','dailyentry'))){ toast('You do not have Save Draft permission', true); return; }
   if(window.__deSaving) return;              /* one click = one save; extra clicks ignored */
@@ -2555,7 +2598,7 @@ async function saveDraftAll(){
       /* ONE audit entry for the batch instead of one slow cloud write per row */
       await logActivity('DRAFT_SAVED', `Daily Entry draft saved for ${saved} row(s) on ${fmtDate(window.__entryDate)}: ${savedCodes.slice(0,15).join(', ')}${savedCodes.length>15?'…':''}`, {page:'Daily Entry'});
     }
-    await save('drafts');
+    await saveDraftsForDate(window.__entryDate);
     entryDraft = {};
     toast(saved? `✅ Draft saved for ${saved} row(s) — visible only on this page until submitted` : 'No changes to save');
     renderApp();
@@ -2635,7 +2678,7 @@ async function submitEntries(){
   if(submitted){
     await logActivity('SUBMIT', `Daily Entry submitted for ${submitted} row(s) on ${fmtDate(window.__entryDate)} — ${rowsCreated} Timesheet row(s) created: ${submittedCodes.slice(0,15).join(', ')}${submittedCodes.length>15?'…':''}`, {page:'Daily Entry'});
   }
-  await save('drafts');
+  await saveDraftsForDate(window.__entryDate);
   entryDraft = {};
   toast(`✅ Submitted ${submitted} entr(ies) — ${rowsCreated} Timesheet row(s) created`);
   renderApp();
@@ -2649,7 +2692,7 @@ async function reopenEntry(key){
   await tsEnsureMonths([month]);
   const oldRows = await tsRemoveWhere(month, t=>t.sourceKey===key);
   d.status = 'Draft'; d.reopenedBy = SESSION.name; d.reopenedAt = new Date().toISOString();
-  await save('drafts');
+  await saveDraftsForDate(d.date || window.__entryDate);
   await logActivity('REOPEN', `Submitted entry ${key} returned to Draft by ${SESSION.name} — ${oldRows.length} Timesheet row(s) withdrawn (original values: ${oldRows.map(r=>r.projectId+':'+r.hours+'h').join(', ')||'none'})`, {page:'Daily Entry', recordId:key, changes: oldRows.map(r=>({field:'timesheet '+r.projectId, oldValue:r.hours+' hrs', newValue:'withdrawn to draft'}))});
   toast('Entry reopened — it is a Draft again and its Timesheet rows were withdrawn (recorded in the audit log)');
   renderApp();
@@ -2657,7 +2700,7 @@ async function reopenEntry(key){
 async function deleteOneDraft(key, empCode){
   askConfirm('Delete this draft?', 'Draft for '+empCode+' on '+fmtDate(window.__entryDate)+' will be removed.', async ()=>{
     delete DB.drafts[key];
-    await save('drafts');
+    await saveDraftsForDate(window.__entryDate);
     await logActivity('DELETE', 'Daily Entry draft deleted for '+empCode+' on '+fmtDate(window.__entryDate), {page:'Daily Entry', recordId:key});
     toast('Draft deleted');
     renderApp();
@@ -2674,7 +2717,7 @@ async function deleteDrafts(){
     await logActivity('DELETE', `Daily Entry draft deleted for ${DB.drafts[k].empId} on ${fmtDate(window.__entryDate)}`, {page:'Daily Entry', recordId:k});
     delete DB.drafts[k];
   }
-  await save('drafts');
+  await saveDraftsForDate(window.__entryDate);
   entryDraft = {};
   toast(`${keys.length} draft(s) deleted`);
   renderApp();
