@@ -10,6 +10,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<!-- SHONE directory (v5.24): live read-only view of SHONE's Project Master / User Master / Admin switches / permissions. Does nothing when SHONE is unreachable. -->
+<script src="https://shone-core-dev.web.app/shone-directory.js?v=13"></script>
 <style>
   :root{
     --teal:#17A385;         /* primary brand */
@@ -239,7 +241,7 @@
    Excel backup download · Departments with page & column
    permissions · Dropdown master page · Excel tab order
    ========================================================= */
-const APP_VERSION = '5.23';
+const APP_VERSION = '5.24';
 const LOGO_B64 = "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";
 
 /* =========================================================
@@ -803,15 +805,119 @@ async function seedStructural(){
 }
 
 /* ---------- helpers ---------- */
-function projName(code){ const p=DB.projects.find(x=>String(x.code)===String(code)); return p?p.name:code; }
-function managerName(mid){ const m=DB.employees.find(x=>x.empCode===mid); return m?m.name:(mid||'—'); }
+function projName(code){ const p=allProjects().find(x=>String(x.code)===String(code)); return p?p.name:code; }
+function managerName(mid){ const m=allEmployees().find(x=>x.empCode===mid); return m?m.name:(mid||'—'); }
 function deptName(id){ const d=DB.departments.find(x=>x.id===id); return d?d.name:'—'; }
 function fmtMoney(n){ return '₹'+ (Number(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); if(isNaN(dt)) return d; return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}); }
 function isAdmin(){ return SESSION && (SESSION.role==='admin' || SESSION.role==='director'); }
 function myDept(){ return SESSION ? DB.departments.find(d=>d.id===SESSION.departmentId) : null; }
-function activeManagers(){ return DB.employees.filter(e=>e.isManager && e.status==='Active'); }
-function openProjects(){ return DB.projects.filter(p=>p.status==='Open'); }
+function activeManagers(){ return allEmployees().filter(e=>e.isManager && e.status==='Active'); }
+function openProjects(){ return allProjects().filter(p=>p.status==='Open'); }
+
+
+/* =========================================================
+   SHONE DIRECTORY — v5.24 pilot (Option B, Director's decision 20-Sep-2026)
+   This dashboard keeps its own lists (ts2_employees, ts2_projects, …). In addition it READS SHONE live:
+   projects mapped to the Production Timesheet, people on its list, the three Admin switches, SHONE permissions.
+   Nothing from SHONE is ever written into this dashboard's database — no duplicate lists.
+   Fail-open: if SHONE is not reachable, everything below returns "use own lists / own rules".
+   ========================================================= */
+const SHONE_MODULE = 'TIMESHEET';
+const SD = () => (window.SHONE && window.SHONE.directory && window.SHONE.directory.ready) ? window.SHONE.directory : null;
+/* Admin switch (SHONE → Module Settings → Local management). true = this dashboard may still create/edit that itself. */
+const shoneLocal = kind => { const d = SD(); return !d || d.localAllowed(kind); };
+/* SHONE's six permission actions (view / add / edit / delete / approve / export) ↔ this dashboard's finer actions */
+const SHONE_ACTION_OF = { view:'view', add:'add', save_draft:'add', edit:'edit', submit:'approve', reopen:'approve', delete:'delete', export:'export', download:'export' };
+/* The EXPLICIT SHONE setting for a page/action: true = Allow, false = Deny, undefined = nothing saved in SHONE. */
+function shoneDecision(pageId, action){
+  const d = SD(); if(!d) return undefined;
+  const a = SHONE_ACTION_OF[action] || action;
+  if(typeof d.decision === 'function') return d.decision(pageId, a);
+  const code = d.moduleCode, u = d.perms && d.perms.user && d.perms.user[code] && d.perms.user[code][pageId], g = d.perms && d.perms.dept && d.perms.dept[code] && d.perms.dept[code][pageId];
+  if(u && u[a]!==undefined) return u[a]!==false;
+  if(g && g[a]!==undefined) return g[a]!==false;
+  return undefined;
+}
+/* The EXPLICIT SHONE column setting: 'view' | 'edit' | 'hide' | undefined */
+function shoneColMode(pageId, colKey){
+  const d = SD(); if(!d) return undefined;
+  if(typeof d.columnDecision === 'function') return d.columnDecision(pageId, colKey);
+  const code = d.moduleCode, u = d.perms && d.perms.user && d.perms.user[code] && d.perms.user[code][pageId], g = d.perms && d.perms.dept && d.perms.dept[code] && d.perms.dept[code][pageId];
+  return (u && u.columns && u.columns[colKey] && u.columns[colKey].mode) || (g && g.columns && g.columns[colKey] && g.columns[colKey].mode) || undefined;
+}
+function shoneLock(what){ const d = window.SHONE && window.SHONE.directory; return d && typeof d.lockNotice==='function' ? d.lockNotice(what) : `<div class="scope-banner">🔒 This function is centrally managed from SHONE. ${what||''}</div>`; }
+function shoneBlocked(what){ toast('🔒 '+what+' is centrally managed from SHONE — please do it in SHONE.', true); }
+function startShoneDirectory(){
+  try{
+    if(!FB_MODE || !window.SHONE || !window.SHONE.directory || typeof window.SHONE.directory.start!=='function') return;
+    const cu = firebase.auth().currentUser; if(!cu) return;
+    window.SHONE.directory.start({ moduleCode: SHONE_MODULE, getIdToken: () => firebase.auth().currentUser.getIdToken() });
+  }catch(e){ console.warn('[SHONE directory] not started:', e); }
+}
+function stopShoneDirectory(){ try{ if(window.SHONE && window.SHONE.directory && typeof window.SHONE.directory.stop==='function') window.SHONE.directory.stop(); }catch(e){} }
+let __shoneRerender = null;
+window.addEventListener('shone:directory', ()=>{
+  if(!SESSION) return;
+  clearTimeout(__shoneRerender);
+  __shoneRerender = setTimeout(()=>{ if(SESSION && !uiBusy()) renderApp(); }, 350);
+});
+const shoneKey = v => String(v==null?'':v).trim().toUpperCase();
+/* PROJECTS = own list + SHONE Project Master projects mapped to the Production Timesheet that are not held here (read-only, marked SHONE).
+   Once local project management is OFF, SHONE's Active/Inactive decides Open/Closed for the projects SHONE knows. Names stay this dashboard's own. */
+let __allProjCache = null, __allEmpCache = null;
+function allProjects(){
+  if(__allProjCache) return __allProjCache;
+  const r = allProjectsCompute(); __allProjCache = r; Promise.resolve().then(()=>{ __allProjCache = null; }); return r;
+}
+function allProjectsCompute(){
+  const local = DB.projects; const d = SD(); if(!d) return local;
+  const have = new Set(local.map(p=>shoneKey(p.code)));
+  const extra = (d.projects||[]).filter(p=>p.projectNumber && !have.has(shoneKey(p.projectNumber))).map(p=>({
+    code: p.projectNumber, name: p.projectName||'', desc: p.client ? 'Client: '+p.client : '', start: p.poDate||null, end: p.deliveryDate||null,
+    status: p.isActive===false ? 'Closed' : 'Open', departmentId: null, managerId: null, allowedDepts: [], fromShone: true }));
+  if(shoneLocal('projects')) return extra.length ? local.concat(extra) : local;
+  const byNum = {}; (d.projects||[]).forEach(p=>{ byNum[shoneKey(p.projectNumber)] = p; });
+  return local.map(p=>{ const sp = byNum[shoneKey(p.code)]; return sp ? {...p, status: sp.isActive===false ? 'Closed' : 'Open', shoneName: sp.projectName||''} : p; }).concat(extra);
+}
+/* PEOPLE = own Employee Master + people SHONE lists for the Production Timesheet who have no login anywhere and are not held here
+   (added in SHONE → User Master → "Add employee (no login)"; read-only here, marked SHONE).
+   Once local user management is OFF, the identity of employees SHONE knows (name, Active/Inactive, designation, department) follows SHONE. */
+function shoneModulePeople(){ const d = SD(); if(!d) return []; return (d.modulePeople||[]).filter(u=>u.employeeId); }
+function allEmployees(){
+  if(__allEmpCache) return __allEmpCache;
+  const r = allEmployeesCompute(); __allEmpCache = r; Promise.resolve().then(()=>{ __allEmpCache = null; }); return r;
+}
+function allEmployeesCompute(){
+  const local = DB.employees; const d = SD(); if(!d) return local;
+  const people = shoneModulePeople(); if(!people.length) return local;
+  const have = new Set(local.map(e=>shoneKey(e.empCode)));
+  const extra = people.filter(u=>!have.has(shoneKey(u.employeeId)) && !u.authUid).map(u=>({
+    empCode: u.employeeId, name: u.employeeName||'', email: u.officialEmail||null, doj: null, rate: 0, designation: u.designation||'', dol: null,
+    status: u.isActive===false ? 'Inactive' : 'Active', isManager: false, managerId: null,
+    departmentId: (DB.departments.find(dd=>dd.name && u.department && dd.name.toLowerCase()===String(u.department).toLowerCase())||{}).id || null, fromShone: true }));
+  if(shoneLocal('users')) return extra.length ? local.concat(extra) : local;
+  const byId = {}; people.forEach(u=>{ byId[shoneKey(u.employeeId)] = u; });
+  return local.map(e=>{
+    const su = byId[shoneKey(e.empCode)];
+    if(!su || !(su.managedIn==='SHONE' || (su.activeIn && su.activeIn[SHONE_MODULE]!==undefined))) return e;   /* not yet processed by SHONE's v0.13 sync → keep own record */
+    const dep = su.department ? DB.departments.find(dd=>dd.name && dd.name.toLowerCase()===String(su.department).toLowerCase()) : null;
+    return {...e, name: su.employeeName||e.name, status: su.isActive===false ? 'Inactive' : 'Active', designation: su.designation||e.designation, departmentId: dep ? dep.id : e.departmentId, shoneManaged: true };
+  }).concat(extra);
+}
+/* searchable dropdowns: every <select data-search> with a long list gets SHONE's type-to-search box (the <select> stays the value holder) */
+function shoneEnhanceSelects(root){
+  const d = window.SHONE && window.SHONE.directory; if(!d || typeof d.enhanceSelect!=='function') return;
+  (root||document).querySelectorAll('select[data-search]').forEach(sel=>{ if(sel.dataset.shoneCb || sel.options.length < 8) return; try{ d.enhanceSelect(sel, {placeholder:'Type to search…'}); }catch(e){} });
+}
+function shoneStatusLine(){
+  const d = window.SHONE && window.SHONE.directory; if(!d || !FB_MODE) return '';
+  if(d.ready){
+    const off = ['projects','users','permissions'].filter(k=>d.controls && d.controls[k]===false);
+    return `🔗 SHONE: connected · ${(d.projects||[]).length} projects · ${(d.modulePeople||[]).length} people${off.length?' · centrally managed: '+off.join(', '):''}`;
+  }
+  return d.error ? '⚠️ SHONE not reachable — own lists and rules in use' : (SESSION ? '… SHONE: connecting' : '');
+}
 
 /* ---------- PAGE & COLUMN registries ---------- */
 const PAGES = [
@@ -888,6 +994,11 @@ const LEGACY_DEFAULT_ACTIONS = ['view','add','save_draft','edit','submit','expor
 /* Effective permission: user override → department → legacy dept.pages → deny. Admin = everything. */
 function can(action, pageId){
   if(!SESSION) return false;
+  /* v5.24 — SHONE Admin first: a Deny saved in SHONE always wins (even for this dashboard's admins);
+     an Allow saved in SHONE is final once local permission management is OFF. Otherwise this dashboard's own rules decide. */
+  const sd = shoneDecision(pageId, action);
+  if(sd===false) return false;
+  if(sd===true && !shoneLocal('permissions')) return true;
   if(isAdmin()) return true;
   const u = SESSION;
   if(u.pagePerms && u.pagePerms[pageId]) return u.pagePerms[pageId].includes(action);
@@ -899,12 +1010,23 @@ function can(action, pageId){
 }
 function pageAllowed(pageId){
   if(!SESSION) return false;
+  if(shoneDecision(pageId, 'view')===false) return false;      /* v5.24: SHONE Deny hides the page for everyone */
   if(isAdmin()) return true;
   return can('view', pageId);
 }
 /* Column state: 'hidden' | 'view' | 'edit'. User override → dept → legacy visible-array → view */
 function colState(pageId, colKey){
   if(!SESSION) return 'hidden';
+  /* v5.24 — SHONE column setting first: hide always wins; view/edit are final once local permission management is OFF,
+     otherwise SHONE may only restrict (edit → view). */
+  const sm = shoneColMode(pageId, colKey);
+  if(sm==='hide') return 'hidden';
+  const own = colStateOwn(pageId, colKey);
+  if(sm && !shoneLocal('permissions')) return sm==='edit' ? 'edit' : 'view';
+  if(sm==='view' && own==='edit') return 'view';
+  return own;
+}
+function colStateOwn(pageId, colKey){
   if(isAdmin()) return 'edit';
   const u = SESSION;
   if(u.colPerms && u.colPerms[pageId] && u.colPerms[pageId][colKey]) return u.colPerms[pageId][colKey];
@@ -925,13 +1047,14 @@ function userScope(){
 }
 function scopedEmployees(){
   const s = userScope();
-  if(s==='all') return DB.employees;
-  if(s==='department') return DB.employees.filter(e=>e.departmentId===SESSION.departmentId);
+  const all = allEmployees();
+  if(s==='all') return all;
+  if(s==='department') return all.filter(e=>e.departmentId===SESSION.departmentId);
   if(s==='team'){
     const my = SESSION.empId;
-    return DB.employees.filter(e=>e.empCode===my || e.managerId===my);
+    return all.filter(e=>e.empCode===my || e.managerId===my);
   }
-  return DB.employees.filter(e=>e.empCode===SESSION.empId); // own
+  return all.filter(e=>e.empCode===SESSION.empId); // own
 }
 function scopedTimesheets(){
   const s = userScope();
@@ -1135,6 +1258,7 @@ async function establishSession(u){
   SESSION = u; VIEW='dashboard';
   await logActivity('LOGIN', `${u.name} signed in`, {page:'Login', recordId:u.uid});
   startInactivityTimer();
+  startShoneDirectory();                     /* v5.24: live read-only view of SHONE's masters, switches and permissions */
   if(u.mustChangePassword){ renderForcedPasswordChange(); return; }
   renderApp();
 }
@@ -1176,6 +1300,7 @@ async function logout(){
   if(SESSION){ await logActivity('LOGOUT', `${SESSION.name} signed out`, {page:'Login', recordId:SESSION.uid}); }
   SESSION=null;
   stopInactivityTimer();
+  stopShoneDirectory();
   if(FB_MODE){ try{ await firebase.auth().signOut(); }catch(e){} }
   renderLogin();
 }
@@ -1204,6 +1329,7 @@ function startInactivityTimer(){
       try{ await logActivity('LOGOUT', `${name} — session expired (inactivity)`, {page:'Login'}); }catch(e){}
       SESSION = null;
       stopInactivityTimer();
+      stopShoneDirectory();
       if(FB_MODE){ try{ await firebase.auth().signOut(); }catch(e){} }
       renderLogin('⏳ Session expired after '+mins+' minutes of inactivity. Please sign in again.');
     }
@@ -1247,15 +1373,16 @@ function renderShell(innerHtml, title, sub){
   const nav = [
     navBtn({id:'dashboard',icon:'🏠',label:'Dashboard'}),
     ...userPages.map(navBtn),
-    ...(isAdmin() ? ['<div class="nav-divider">Administration</div>', ...ADMIN_PAGES.map(navBtn)] : [])
+    ...(isAdmin() ? ['<div class="nav-divider">Administration</div>', ...ADMIN_PAGES.filter(p=>shoneDecision(p.id,'view')!==false).map(navBtn)] : [])
   ].join('');
   const lastB = DB.backupMeta && DB.backupMeta.lastBackup ? new Date(DB.backupMeta.lastBackup).toLocaleTimeString('en-IN') : '—';
+  const shoneLine = shoneStatusLine();
   document.getElementById('app').innerHTML = `
     <div class="shell">
       <div class="sidebar">
         <div class="sidebar-brand"><img src="data:image/gif;base64,${LOGO_B64}" alt="SHEPL"></div>
         <div class="nav">${nav}</div>
-        <div class="sidebar-foot"><span class="backup-dot"></span>${FB_MODE?'🔥 Firebase — live sync':'💻 Local mode — tab sync'} · <b>v${APP_VERSION}</b><br>Auto-backup: every 5 min · Last: <span id="lastBackupLbl">${lastB}</span></div>
+        <div class="sidebar-foot"><span class="backup-dot"></span>${FB_MODE?'🔥 Firebase — live sync':'💻 Local mode — tab sync'} · <b>v${APP_VERSION}</b><br>Auto-backup: every 5 min · Last: <span id="lastBackupLbl">${lastB}</span>${shoneLine?'<br>'+shoneLine:''}</div>
       </div>
       <div class="nav-backdrop" onclick="document.body.classList.remove('nav-open')"></div>
       <div class="main">
@@ -1273,6 +1400,7 @@ function renderShell(innerHtml, title, sub){
         <div class="content">${innerHtml}</div>
       </div>
     </div>`;
+  shoneEnhanceSelects(document.getElementById('app'));
 }
 
 /* =========================================================
@@ -1416,6 +1544,8 @@ function downloadTemplate(target){
 /* ---------- Upload + validation ---------- */
 function openBulkUpload(target){
   if(typeof XLSX === 'undefined'){ toast('Excel engine not loaded — connect to the internet once and refresh this page.', true); return; }
+  if(target==='employees' && !shoneLocal('users')){ shoneBlocked('Bulk upload of employees'); return; }
+  if(target==='projects' && !shoneLocal('projects')){ shoneBlocked('Bulk upload of projects'); return; }
   BULK_TARGET = target;
   const inp = document.getElementById('bulkFileInput');
   inp.value = ''; inp.onchange = handleBulkFile; inp.click();
@@ -1440,6 +1570,8 @@ function matchDD(listName, v){
 async function handleBulkFile(ev){
   const file = ev.target.files[0];
   if(!file) return;
+  if(BULK_TARGET==='employees' && !shoneLocal('users')){ shoneBlocked('Bulk upload of employees'); return; }
+  if(BULK_TARGET==='projects' && !shoneLocal('projects')){ shoneBlocked('Bulk upload of projects'); return; }
   let wb;
   try{ wb = XLSX.read(await file.arrayBuffer(), {cellDates:true}); }
   catch(e){ toast('Could not read this file — please upload a valid Excel file.', true); return; }
@@ -1503,12 +1635,12 @@ async function handleBulkFile(ev){
       } else if(type==='emp'){
         /* case-insensitive: "shp2101" matches SHP2101 and is stored with the master's exact spelling */
         const code = String(v).trim();
-        const hit = DB.employees.find(e=>String(e.empCode).trim().toLowerCase()===code.toLowerCase());
+        const hit = allEmployees().find(e=>String(e.empCode).trim().toLowerCase()===code.toLowerCase());
         if(!hit){ fail(label, `Employee "${code}" is not on the Employees page`, 'Bulk-upload or add this employee first, then upload timesheets'); }
         else rec[field]=hit.empCode;
       } else if(type==='proj'){
         const code = String(v).trim();
-        const hitP = DB.projects.find(p=>String(p.code).trim().toLowerCase()===code.toLowerCase());
+        const hitP = allProjects().find(p=>String(p.code).trim().toLowerCase()===code.toLowerCase());
         if(!hitP){ fail(label, `Project "${code}" is not on the Project List page`, 'Add this project first, then upload timesheets'); }
         else rec[field]=String(hitP.code);
       } else {
@@ -1519,7 +1651,7 @@ async function handleBulkFile(ev){
 
     /* extra business checks */
     if(BULK_TARGET==='timesheets' && !(rec.hours>0)){ fail('Hrs','Hours must be greater than 0','Enter the hours actually worked, e.g. 8'); return; }
-    if(BULK_TARGET==='timesheets' && rec.managerId && !DB.employees.find(e=>e.empCode===String(rec.managerId).trim())){
+    if(BULK_TARGET==='timesheets' && rec.managerId && !allEmployees().find(e=>e.empCode===String(rec.managerId).trim())){
       fail('Manager ID of Entry', `Manager "${rec.managerId}" is not on the Employees page`, 'Use the EmpID of an existing employee, or leave blank'); return;
     }
     if(BULK_TARGET==='users' && rec.role && !/^(admin|user|director)$/i.test(String(rec.role).trim())){
@@ -1581,7 +1713,7 @@ async function handleBulkFile(ev){
     const cloudCount = new Map();
     DB.timesheets.forEach(t=>{ const k=[t.date,t.empId,t.projectId,t.hours].join('|'); cloudCount.set(k,(cloudCount.get(k)||0)+1); });
     const fileCount = new Map();
-    const empMap = new Map(DB.employees.map(e=>[e.empCode,e]));
+    const empMap = new Map(allEmployees().map(e=>[e.empCode,e]));
     const newRows = [];
     good.forEach(rec=>{
       const k = [rec.date,rec.empId,rec.projectId,rec.hours].join('|');
@@ -1744,7 +1876,7 @@ async function downloadExcelBackup(){
   toast('Excel backup downloaded');
 }
 function renderBackup(){
-  if(!isAdmin()){ VIEW='dashboard'; return renderDashboard(); }
+  if(!isAdmin() || shoneDecision('backup','view')===false){ VIEW='dashboard'; return renderDashboard(); }
   const last = DB.backupMeta.lastBackup ? new Date(DB.backupMeta.lastBackup).toLocaleString('en-IN') : 'Not yet — runs automatically';
   const counts = `${DB.employees.length} employees · ${DB.projects.length} projects · ${tsTotalCount().toLocaleString()} timesheet rows (on ${tsMonths().length} month page(s)) · ${DB.users.length} users · ${DB.departments.length} departments · ${DB.activity.length} activity entries`;
   const html = `
@@ -1882,7 +2014,7 @@ function selectAllPage(page, checked){
   (window.__pageIds && window.__pageIds[page] || []).forEach(id=>{ if(checked) s.add(String(id)); else s.delete(String(id)); });
   renderApp();
 }
-function canDelete(page){ return isAdmin() || can('delete', page); }
+function canDelete(page){ return can('delete', page); }   /* v5.24: admins included via can(); a SHONE Deny binds them too */
 function askConfirm(title, msg, cb){
   window.__confirmCb = cb;
   document.getElementById('modalRoot')?.remove();
@@ -1896,6 +2028,7 @@ function askConfirm(title, msg, cb){
   document.body.appendChild(div);
 }
 async function bulkDeleteEmployees(){
+  if(!shoneLocal('users')){ shoneBlocked('Deleting employees'); return; }
   const ids = [...selSet('employees')];
   if(!ids.length) return;
   askConfirm('Delete '+ids.length+' employee(s)?', 'They will be removed from the Employee Master. Their historical timesheet rows are NOT deleted. This is recorded in the audit log.', async ()=>{
@@ -1909,6 +2042,7 @@ async function bulkDeleteEmployees(){
 }
 async function bulkDeleteProjects(){
   if(!isAdmin()){ toast('Only Admin or Director can delete projects', true); return; }
+  if(!shoneLocal('projects')){ shoneBlocked('Deleting projects'); return; }
   const ids = [...selSet('projects')];
   if(!ids.length) return;
   askConfirm('Delete '+ids.length+' project(s)?', 'They will be removed from the Project Master. Historical timesheet rows are NOT deleted. Recorded in the audit log.', async ()=>{
@@ -1921,6 +2055,7 @@ async function bulkDeleteProjects(){
   });
 }
 async function bulkDeleteUsers(){
+  if(!shoneLocal('users')){ shoneBlocked('Removing dashboard logins'); return; }
   const ids = [...selSet('users')];
   if(!ids.length) return;
   askConfirm('Delete '+ids.length+' user account(s)?', 'They can no longer sign in. (In Firebase mode their Auth logins should also be removed in Firebase Console → Authentication.) Recorded in the audit log.', async ()=>{
@@ -1999,7 +2134,9 @@ function renderEmployees(){
   /* Every user with this page sees ALL employees, exactly like admin.
      What they can DO (add/edit/delete/export) and which columns they see
      remain controlled by the admin in Permissions. */
-  let list = DB.employees.slice();
+  const allEmps = allEmployees();                 /* v5.24: own list + people SHONE lists for this dashboard */
+  const usersLocal = shoneLocal('users');
+  let list = allEmps.slice();
   if(emf.q){
     const q = emf.q.toLowerCase();
     list = list.filter(e=> String(e.empCode).toLowerCase().includes(q)
@@ -2049,11 +2186,12 @@ function renderEmployees(){
       default: return [c.label, e[c.key]??''];
     }
   })));
-  const delOK = canDelete('employees');
+  const delOK = canDelete('employees') && usersLocal;
   const sel = selSet('employees');
-  window.__pageIds = window.__pageIds||{}; window.__pageIds['employees'] = list.map(e=>String(e.empCode));
-  const rows = list.map(e=>`<tr>${delOK?`<td><input type="checkbox" ${sel.has(String(e.empCode))?'checked':''} onchange="toggleSel('employees','${e.empCode}',this.checked)"></td>`:''}${cols.map(c=>cellFor(e,c)).join('')}
-    ${(isAdmin()||can('edit','employees'))?`<td><button class="btn btn-sm btn-ghost" onclick="openEmpModal('${e.empCode}')">Edit</button></td>`:''}</tr>`).join('');
+  window.__pageIds = window.__pageIds||{}; window.__pageIds['employees'] = list.filter(e=>!e.fromShone).map(e=>String(e.empCode));
+  const shoneChip = '<span class="badge-pill pill-inactive" title="Comes live from the SHONE User Master — edited in SHONE" style="background:#E6F4F1;color:#0B6E5F;">SHONE</span>';
+  const rows = list.map(e=>`<tr>${delOK?`<td>${e.fromShone?'':`<input type="checkbox" ${sel.has(String(e.empCode))?'checked':''} onchange="toggleSel('employees','${e.empCode}',this.checked)">`}</td>`:''}${cols.map(c=>cellFor(e,c)).join('')}
+    ${(can('edit','employees'))?`<td>${e.fromShone?shoneChip+' ':''}<button class="btn btn-sm btn-ghost" onclick="openEmpModal('${e.empCode}')" title="${e.fromShone?'Set this dashboard\'s own fields (rate, manager, dates) — identity comes from SHONE':'Edit'}">Edit</button></td>`:''}</tr>`).join('');
   const html = `
     ${!isAdmin()?'<div class="scope-banner">👁️ Showing your department only. Column visibility is controlled by Admin.</div>':''}
     <div class="toolbar">
@@ -2064,14 +2202,16 @@ function renderEmployees(){
         <option ${emp.status==='Inactive'?'selected':''}>Inactive</option></select></div>
       <button class="btn btn-primary" onclick="window.__emPend.q=document.getElementById('em_q').value; applyEmpSearch();">🔍 Search</button>
       <button class="btn btn-ghost" onclick="window.__emPend={q:'',status:''}; window.__emColP={}; applyEmpSearch();">✖ Clear</button>
-      ${(isAdmin()||can('export','employees'))?'<button class="btn btn-ghost" onclick="exportEmployeesExcel()">⬇️ Export (Excel)</button>':''}
-      ${(isAdmin()||can('add','employees'))?`<button class="btn btn-primary" onclick="openEmpModal(null)">+ Add Employee</button>${bulkBtn('employees')}`:''}
-      ${canDelete('employees') && selSet('employees').size?`<button class="btn btn-danger" onclick="bulkDeleteEmployees()">🗑 Delete Selected (${selSet('employees').size})</button>`:''}
+      ${(can('export','employees'))?'<button class="btn btn-ghost" onclick="exportEmployeesExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('add','employees')) && usersLocal?`<button class="btn btn-primary" onclick="openEmpModal(null)">+ Add Employee</button>${bulkBtn('employees')}`:''}
+      ${delOK && selSet('employees').size?`<button class="btn btn-danger" onclick="bulkDeleteEmployees()">🗑 Delete Selected (${selSet('employees').size})</button>`:''}
     </div>
-    <div class="card"><h2>👥 Employee Master <span class="badge">${(emf.q||emf.status||Object.values(window.__emColF).some(v=>v&&String(v).trim()))? list.length+' of '+DB.employees.length : list.length}</span></h2>
+    ${usersLocal?'':shoneLock('New employees and their identity details (Emp ID, name, e-mail, department, designation, Active/Inactive) are added and edited in SHONE → User Master. Rate, Is Manager, Reports To and joining/leaving dates can still be edited here.')}
+    ${allEmps.some(e=>e.fromShone)?'<div style="font-size:12px;color:var(--muted);margin:0 0 8px;">Rows marked <b>SHONE</b> come live from the SHONE User Master (added there for the Production Timesheet).</div>':''}
+    <div class="card"><h2>👥 Employee Master <span class="badge">${(emf.q||emf.status||Object.values(window.__emColF).some(v=>v&&String(v).trim()))? list.length+' of '+allEmps.length : list.length}</span></h2>
       <div class="table-scroll"><table>
-        <thead><tr>${canDelete('employees')?`<th><input type="checkbox" onchange="selectAllPage('employees',this.checked)"></th>`:''}${cols.map(c=>`<th>${c.label}</th>`).join('')}${isAdmin()?'<th></th>':''}</tr>
-        <tr>${canDelete('employees')?'<th></th>':''}${cols.map(c=>`<th><input class="colf" data-pg="emp" data-k="${c.key}" style="width:100%;min-width:70px;padding:4px 6px;font-size:11px;font-weight:400;border:1px solid var(--border);border-radius:5px;" placeholder="filter…" value="${window.__emColP[c.key]||''}" onchange="window.__emColP['${c.key}']=this.value;"></th>`).join('')}${isAdmin()?'<th></th>':''}</tr></thead>
+        <thead><tr>${delOK?`<th><input type="checkbox" onchange="selectAllPage('employees',this.checked)"></th>`:''}${cols.map(c=>`<th>${c.label}</th>`).join('')}${can('edit','employees')?'<th></th>':''}</tr>
+        <tr>${delOK?'<th></th>':''}${cols.map(c=>`<th><input class="colf" data-pg="emp" data-k="${c.key}" style="width:100%;min-width:70px;padding:4px 6px;font-size:11px;font-weight:400;border:1px solid var(--border);border-radius:5px;" placeholder="filter…" value="${window.__emColP[c.key]||''}" onchange="window.__emColP['${c.key}']=this.value;"></th>`).join('')}${can('edit','employees')?'<th></th>':''}</tr></thead>
         <tbody>${rows.length?rows:`<tr><td colspan="${cols.length+2}"><div class="empty-state"><div class="ic">👥</div>No employees yet.${isAdmin()?' Add one, or use Bulk Upload with your Excel employee list.':''}</div></td></tr>`}</tbody>
       </table></div>
     </div>`;
@@ -2083,8 +2223,13 @@ function applyEmpSearch(){
   renderApp();
 }
 function openEmpModal(empCode){
-  const e = empCode ? DB.employees.find(x=>x.empCode===empCode) : {empCode:'',name:'',doj:'',rate:'',designation:(DB.dropdowns.Designation||[])[0]||'',dol:'',status:'Active',isManager:false,managerId:'',departmentId:''};
-  const desigOpts = (DB.dropdowns.Designation||[]).map(d=>`<option ${e.designation===d?'selected':''}>${d}</option>`).join('');
+  if(!empCode && !shoneLocal('users')){ shoneBlocked('Adding employees'); return; }
+  let e = empCode ? DB.employees.find(x=>x.empCode===empCode) : {empCode:'',name:'',doj:'',rate:'',designation:(DB.dropdowns.Designation||[])[0]||'',dol:'',status:'Active',isManager:false,managerId:'',departmentId:''};
+  let fromShone = false;
+  if(!e && empCode){ e = allEmployees().find(x=>x.empCode===empCode); fromShone = !!(e && e.fromShone); }
+  if(!e){ toast('Employee not found.', true); return; }
+  const idLock = (!shoneLocal('users') || fromShone) ? 'disabled title="Centrally managed from SHONE"' : '';
+  const desigOpts = [...new Set([...(DB.dropdowns.Designation||[]), ...(e.designation?[e.designation]:[])])].map(d=>`<option ${e.designation===d?'selected':''}>${d}</option>`).join('');
   const statusOpts = (DB.dropdowns.Flag||['Active','Inactive']).map(s=>`<option ${e.status===s?'selected':''}>${s}</option>`).join('');
   const mgrOpts = ['<option value="">— None —</option>'].concat(activeManagers().map(m=>`<option value="${m.empCode}" ${e.managerId===m.empCode?'selected':''}>${m.name}</option>`)).join('');
   const deptOpts = ['<option value="">— None —</option>'].concat(DB.departments.map(d=>`<option value="${d.id}" ${e.departmentId===d.id?'selected':''}>${d.name}</option>`)).join('');
@@ -2093,29 +2238,32 @@ function openEmpModal(empCode){
   div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
     <div class="modal">
       <h3>${empCode?'Edit':'Add'} Employee</h3>
+      ${idLock?shoneLock((fromShone?'This person comes from the SHONE User Master. ':'')+'Identity details are edited in SHONE → User Master; the fields below that stay open are this dashboard\'s own (saved here only).'):''}
       <div class="field"><label>Emp ID *</label><input id="f_empCode" value="${e.empCode}" ${empCode?'disabled':''}></div>
-      <div class="field"><label>Name *</label><input id="f_name" value="${e.name}"></div>
-      <div class="field"><label>Email ID</label><input id="f_email" type="email" value="${e.email||''}"></div>
+      <div class="field"><label>Name *</label><input id="f_name" value="${e.name}" ${idLock}></div>
+      <div class="field"><label>Email ID</label><input id="f_email" type="email" value="${e.email||''}" ${idLock}></div>
       <div class="field"><label>Date of Joining</label><input id="f_doj" type="date" value="${e.doj||''}"></div>
       <div class="field"><label>Rate / Hr (₹)</label><input id="f_rate" type="number" value="${e.rate}"></div>
-      <div class="field"><label>Designation</label><select id="f_designation">${desigOpts}</select></div>
+      <div class="field"><label>Designation</label><select id="f_designation" data-search ${idLock}>${desigOpts}</select></div>
       <div class="field"><label>Date of Leaving</label><input id="f_dol" type="date" value="${e.dol||''}"></div>
-      <div class="field"><label>Status</label><select id="f_status">${statusOpts}</select></div>
+      <div class="field"><label>Status</label><select id="f_status" ${idLock}>${statusOpts}</select></div>
       <div class="field"><label>Is Manager?</label><select id="f_isManager"><option value="false" ${!e.isManager?'selected':''}>No</option><option value="true" ${e.isManager?'selected':''}>Yes</option></select></div>
-      <div class="field"><label>Reports To (Manager)</label><select id="f_managerId">${mgrOpts}</select></div>
-      <div class="field"><label>Department</label><select id="f_departmentId">${deptOpts}</select></div>
+      <div class="field"><label>Reports To (Manager)</label><select id="f_managerId" data-search>${mgrOpts}</select></div>
+      <div class="field"><label>Department</label><select id="f_departmentId" data-search ${idLock}>${deptOpts}</select></div>
       <div class="modal-actions">
-        ${empCode?`<button class="btn btn-danger" onclick="deleteEmp('${empCode}')">Delete</button>`:''}
+        ${empCode && !idLock?`<button class="btn btn-danger" onclick="deleteEmp('${empCode}')">Delete</button>`:''}
         <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
         <button class="btn btn-primary" onclick="saveEmp('${empCode||''}')">Save</button>
       </div>
     </div></div>`;
   document.body.appendChild(div);
+  shoneEnhanceSelects(div);
 }
 async function saveEmp(existingCode){
   const empCode = existingCode || document.getElementById('f_empCode').value.trim();
   const name = document.getElementById('f_name').value.trim();
   if(!empCode || !name){ toast('Emp ID and Name are required', true); return; }
+  if(!existingCode && !shoneLocal('users')){ shoneBlocked('Adding employees'); return; }
   const data = {
     empCode, name,
     email: document.getElementById('f_email').value.trim() || null,
@@ -2130,6 +2278,9 @@ async function saveEmp(existingCode){
   };
   const idx = DB.employees.findIndex(x=>x.empCode===empCode);
   const before = idx>=0 ? {...DB.employees[idx]} : null;
+  if(idx>=0 && !shoneLocal('users')){          /* centrally managed: only this dashboard's own fields may change here */
+    ['name','email','designation','status','departmentId'].forEach(k=>{ data[k] = DB.employees[idx][k]; });
+  }
   if(idx>=0) DB.employees[idx]={...DB.employees[idx],...data}; else DB.employees.push(data);
   await save('employees');
   const ch = diffChanges(before, data, ['name','doj','rate','designation','dol','status','isManager','managerId','departmentId']);
@@ -2140,6 +2291,7 @@ async function saveEmp(existingCode){
   toast('Employee saved'); renderApp();
 }
 async function deleteEmp(empCode){
+  if(!shoneLocal('users')){ shoneBlocked('Deleting employees'); return; }
   DB.employees = DB.employees.filter(x=>x.empCode!==empCode);
   await save('employees');
   await logActivity('DELETE', `Employee ${empCode} deleted`);
@@ -2164,7 +2316,8 @@ function renderProjects(){
       default: return `<td>${p[c.key]??'—'}</td>`;
     }
   };
-  const delOK = isAdmin();   /* project deletion is strictly Admin/Director — dept Delete permission does not apply here */
+  const projLocal = shoneLocal('projects');
+  const delOK = isAdmin() && projLocal;   /* project deletion is strictly Admin/Director — dept Delete permission does not apply here */
   const sel = selSet('projects');
   if(!window.__pjColF) window.__pjColF = {};
   if(!window.__pjColP) window.__pjColP = {...window.__pjColF};
@@ -2178,7 +2331,8 @@ function renderProjects(){
     }
   };
   if(window.__pjStatus===undefined) window.__pjStatus='';
-  let list = DB.projects;
+  const allProj = allProjects();                  /* v5.24: own list + SHONE Project Master projects mapped to this dashboard */
+  let list = allProj;
   if(window.__pjStatus) list = list.filter(p=> String(p.status||'').trim().toLowerCase()===String(window.__pjStatus).trim().toLowerCase());
   for(const [k,v] of Object.entries(window.__pjColF)){
     if(v==null || String(v).trim()==='') continue;
@@ -2192,9 +2346,10 @@ function renderProjects(){
       default: return [c.label, p[c.key]??''];
     }
   })));
-  window.__pageIds = window.__pageIds||{}; window.__pageIds['projects'] = list.map(p=>String(p.code));
-  const rows = list.map(p=>`<tr>${delOK?`<td><input type="checkbox" ${sel.has(String(p.code))?'checked':''} onchange="toggleSel('projects','${p.code}',this.checked)"></td>`:''}${cols.map(c=>cellFor(p,c)).join('')}
-    ${(isAdmin()||can('edit','projects'))?`<td><button class="btn btn-sm btn-ghost" onclick="openProjModal('${p.code}')">Edit</button></td>`:''}</tr>`).join('');
+  window.__pageIds = window.__pageIds||{}; window.__pageIds['projects'] = list.filter(p=>!p.fromShone).map(p=>String(p.code));
+  const shoneChipP = '<span class="badge-pill pill-inactive" title="Comes live from the SHONE Project Master — edited in SHONE" style="background:#E6F4F1;color:#0B6E5F;">SHONE</span>';
+  const rows = list.map(p=>`<tr>${delOK?`<td>${p.fromShone?'':`<input type="checkbox" ${sel.has(String(p.code))?'checked':''} onchange="toggleSel('projects','${p.code}',this.checked)">`}</td>`:''}${cols.map(c=>cellFor(p,c)).join('')}
+    ${(can('edit','projects'))?`<td>${p.fromShone?shoneChipP+' ':''}<button class="btn btn-sm btn-ghost" onclick="openProjModal('${p.code}')" title="${p.fromShone?'Set this dashboard\'s own fields (department, PM, dates, usable by) — identity comes from SHONE':'Edit'}">Edit</button></td>`:''}</tr>`).join('');
   const html = `
     <div class="toolbar">
       <div class="field"><label>Status</label><select onchange="window.__pjStatus=this.value; renderApp();">
@@ -2203,52 +2358,64 @@ function renderProjects(){
         <option ${window.__pjStatus==='Closed'?'selected':''}>Closed</option></select></div>
       <button class="btn btn-primary" onclick="applyProjSearch()">🔍 Search</button>
       <button class="btn btn-ghost" onclick="window.__pjColP={}; window.__pjStatus=''; applyProjSearch();">✖ Clear</button>
-      ${(isAdmin()||can('export','projects'))?'<button class="btn btn-ghost" onclick="exportProjectsExcel()">⬇️ Export (Excel)</button>':''}
-      ${(isAdmin()||can('add','projects'))?`<button class="btn btn-primary" onclick="openProjModal(null)">+ Add Project</button>${bulkBtn('projects')}`:''}
-      ${isAdmin() && selSet('projects').size?`<button class="btn btn-danger" onclick="bulkDeleteProjects()">🗑 Delete Selected (${selSet('projects').size})</button>`:''}</div>
-    <div class="card"><h2>🏗️ Project Master <span class="badge">${(window.__pjStatus||Object.values(window.__pjColF).some(v=>v&&String(v).trim()))? list.length+' of '+DB.projects.length : list.length}</span></h2>
+      ${(can('export','projects'))?'<button class="btn btn-ghost" onclick="exportProjectsExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('add','projects')) && projLocal?`<button class="btn btn-primary" onclick="openProjModal(null)">+ Add Project</button>${bulkBtn('projects')}`:''}
+      ${delOK && selSet('projects').size?`<button class="btn btn-danger" onclick="bulkDeleteProjects()">🗑 Delete Selected (${selSet('projects').size})</button>`:''}</div>
+    ${projLocal?'':shoneLock('New projects and their identity (Project ID, name, description, Open/Closed) are managed in SHONE → Project Master. Department, project manager, dates and "usable by departments" can still be set here.')}
+    ${allProj.some(p=>p.fromShone)?'<div style="font-size:12px;color:var(--muted);margin:0 0 8px;">Rows marked <b>SHONE</b> come live from the SHONE Project Master (mapped to the Production Timesheet there).</div>':''}
+    <div class="card"><h2>🏗️ Project Master <span class="badge">${(window.__pjStatus||Object.values(window.__pjColF).some(v=>v&&String(v).trim()))? list.length+' of '+allProj.length : list.length}</span></h2>
       <div class="table-scroll"><table>
-        <thead><tr>${isAdmin()?`<th><input type="checkbox" onchange="selectAllPage('projects',this.checked)"></th>`:''}${cols.map(c=>`<th>${c.label}</th>`).join('')}${isAdmin()?'<th></th>':''}</tr>
-        <tr>${isAdmin()?'<th></th>':''}${cols.map(c=>`<th><input class="colf" data-pg="proj" data-k="${c.key}" style="width:100%;min-width:70px;padding:4px 6px;font-size:11px;font-weight:400;border:1px solid var(--border);border-radius:5px;" placeholder="filter…" value="${window.__pjColP[c.key]||''}" onchange="window.__pjColP['${c.key}']=this.value;"></th>`).join('')}${isAdmin()?'<th></th>':''}</tr></thead>
+        <thead><tr>${delOK?`<th><input type="checkbox" onchange="selectAllPage('projects',this.checked)"></th>`:''}${cols.map(c=>`<th>${c.label}</th>`).join('')}${can('edit','projects')?'<th></th>':''}</tr>
+        <tr>${delOK?'<th></th>':''}${cols.map(c=>`<th><input class="colf" data-pg="proj" data-k="${c.key}" style="width:100%;min-width:70px;padding:4px 6px;font-size:11px;font-weight:400;border:1px solid var(--border);border-radius:5px;" placeholder="filter…" value="${window.__pjColP[c.key]||''}" onchange="window.__pjColP['${c.key}']=this.value;"></th>`).join('')}${can('edit','projects')?'<th></th>':''}</tr></thead>
         <tbody>${rows.length?rows:`<tr><td colspan="${cols.length+2}"><div class="empty-state"><div class="ic">🏗️</div>No projects yet.${isAdmin()?' Add one, or bulk upload your ProjectList sheet.':''}</div></td></tr>`}</tbody>
       </table></div>
     </div>`;
-  renderShell(html, '🏗️ Project List', 'Open projects feed the Daily Entry dropdown automatically');
+  renderShell(html, '🏗️ Project List', 'Open projects feed the Daily Entry dropdown automatically' + (SD() ? ' · SHONE projects mapped to the Production Timesheet appear here too' : ''));
 }
 function applyProjSearch(){
   window.__pjColF = {...(window.__pjColP||{})};
   renderApp();
 }
 function openProjModal(code){
-  const p = code ? DB.projects.find(x=>String(x.code)===String(code)) : {code:'',name:'',desc:'',start:'',end:'',status:'Open'};
-  const statusOpts = (DB.dropdowns.Flag3||['Open','Closed']).map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join('');
+  if(!code && !shoneLocal('projects')){ shoneBlocked('Adding projects'); return; }
+  let p = code ? DB.projects.find(x=>String(x.code)===String(code)) : {code:'',name:'',desc:'',start:'',end:'',status:'Open'};
+  let fromShoneP = false;
+  if(!p && code){ p = allProjects().find(x=>String(x.code)===String(code)); fromShoneP = !!(p && p.fromShone); }
+  if(!p){ toast('Project not found.', true); return; }
+  const idLockP = (!shoneLocal('projects') || fromShoneP) ? 'disabled title="Centrally managed from SHONE"' : '';
+  const statusOpts = [...new Set([...(DB.dropdowns.Flag3||['Open','Closed']), ...(p.status?[p.status]:[])])].map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join('');
   document.getElementById('modalRoot')?.remove();
   const div = document.createElement('div'); div.id='modalRoot';
   div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
     <div class="modal">
       <h3>${code?'Edit':'Add'} Project</h3>
+      ${idLockP?shoneLock((fromShoneP?'This project comes from the SHONE Project Master. ':'')+'Project ID, name, description and Open/Closed are edited in SHONE → Project Master; the fields below that stay open are this dashboard\'s own (saved here only).'):''}
       <div class="field"><label>Project ID *</label><input id="p_code" value="${p.code}" ${code?'disabled':''}></div>
-      <div class="field"><label>Project Name *</label><input id="p_name" value="${p.name}"></div>
-      <div class="field"><label>Description</label><input id="p_desc" value="${p.desc||''}"></div>
+      <div class="field"><label>Project Name *</label><input id="p_name" value="${p.name}" ${idLockP}></div>
+      <div class="field"><label>Description</label><input id="p_desc" value="${p.desc||''}" ${idLockP}></div>
       <div class="field"><label>Start Date</label><input id="p_start" type="date" value="${p.start||''}"></div>
       <div class="field"><label>End Date</label><input id="p_end" type="date" value="${p.end||''}"></div>
-      <div class="field"><label>Status</label><select id="p_status">${statusOpts}</select></div>
-      <div class="field"><label>Department</label><select id="p_dept">${['<option value="">— Any —</option>'].concat(DB.departments.map(d=>`<option value="${d.id}" ${p.departmentId===d.id?'selected':''}>${d.name}</option>`)).join('')}</select></div>
-      <div class="field"><label>Project Manager</label><select id="p_mgr">${['<option value="">—</option>'].concat(activeManagers().map(m=>`<option value="${m.empCode}" ${p.managerId===m.empCode?'selected':''}>${m.name}</option>`)).join('')}</select></div>
+      <div class="field"><label>Status</label><select id="p_status" ${idLockP}>${statusOpts}</select></div>
+      <div class="field"><label>Department</label><select id="p_dept" data-search>${['<option value="">— Any —</option>'].concat(DB.departments.map(d=>`<option value="${d.id}" ${p.departmentId===d.id?'selected':''}>${d.name}</option>`)).join('')}</select></div>
+      <div class="field"><label>Project Manager</label><select id="p_mgr" data-search>${['<option value="">—</option>'].concat(activeManagers().map(m=>`<option value="${m.empCode}" ${p.managerId===m.empCode?'selected':''}>${m.name}</option>`)).join('')}</select></div>
       <div class="field"><label>Usable by departments (Ctrl-click for multiple, none = all)</label>
         <select id="p_allowed" multiple size="3">${DB.departments.map(d=>`<option value="${d.id}" ${(p.allowedDepts||[]).includes(d.id)?'selected':''}>${d.name}</option>`).join('')}</select></div>
       <div class="modal-actions">
-        ${(code && isAdmin())?`<button class="btn btn-danger" onclick="deleteProj('${code}')">Delete</button>`:''}
+        ${(code && isAdmin() && !idLockP)?`<button class="btn btn-danger" onclick="deleteProj('${code}')">Delete</button>`:''}
         <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
         <button class="btn btn-primary" onclick="saveProj('${code||''}')">Save</button>
       </div>
     </div></div>`;
   document.body.appendChild(div);
+  shoneEnhanceSelects(div);
 }
 async function saveProj(existingCode){
   const code = existingCode || document.getElementById('p_code').value.trim();
   const name = document.getElementById('p_name').value.trim();
   if(!code || !name){ toast('Project ID and Name are required', true); return; }
+  if(!existingCode && !shoneLocal('projects')){ shoneBlocked('Adding projects'); return; }
+  if(!existingCode && SD() && (SD().projects||[]).some(p=>shoneKey(p.projectNumber)===shoneKey(code)) && !DB.projects.some(p=>shoneKey(p.code)===shoneKey(code))){
+    toast('Project '+code+' already exists in the SHONE Project Master (it is already offered here) — no duplicate created.', true); return; }
   const data = { code, name, desc:document.getElementById('p_desc').value.trim(),
     start:document.getElementById('p_start').value||null, end:document.getElementById('p_end').value||null,
     status:document.getElementById('p_status').value,
@@ -2257,6 +2424,9 @@ async function saveProj(existingCode){
     allowedDepts: [...document.getElementById('p_allowed').selectedOptions].map(o=>o.value) };
   const idx = DB.projects.findIndex(x=>String(x.code)===String(code));
   const before = idx>=0 ? {...DB.projects[idx]} : null;
+  if(idx>=0 && !shoneLocal('projects')){        /* centrally managed: only this dashboard's own fields may change here */
+    ['name','desc','status'].forEach(k=>{ data[k] = DB.projects[idx][k]; });
+  }
   if(idx>=0) DB.projects[idx]={...DB.projects[idx],...data}; else DB.projects.push(data);
   await save('projects');
   const ch = diffChanges(before, data, ['name','desc','start','end','status']);
@@ -2268,6 +2438,7 @@ async function saveProj(existingCode){
 }
 async function deleteProj(code){
   if(!isAdmin()){ toast('Only Admin or Director can delete projects', true); return; }
+  if(!shoneLocal('projects')){ shoneBlocked('Deleting projects'); return; }
   askConfirm('Delete project '+code+'?', 'It is removed from the Project Master. Historical timesheet rows are NOT deleted. Recorded in the audit log.', async ()=>{
     DB.projects = DB.projects.filter(x=>String(x.code)!==String(code));
     await save('projects');
@@ -2309,8 +2480,8 @@ function renderTimesheets(){
   const pageRows = rows.slice(pageStart, pageStart+ps);
 
   const cols = visibleCols('timesheets');
-  const empOpts = ['<option value="">All employees</option>'].concat(scopedEmployees().map(e=>`<option value="${e.empCode}" ${p.emp===e.empCode?'selected':''}>${e.name}</option>`)).join('');
-  const projOpts = ['<option value="">All projects</option>'].concat(DB.projects.map(pr=>`<option value="${pr.code}" ${String(p.proj)===String(pr.code)?'selected':''}>${pr.code}</option>`)).join('');
+  const empOpts = ['<option value="">All employees</option>'].concat(scopedEmployees().map(e=>`<option value="${e.empCode}" data-sub="${e.empCode}" ${p.emp===e.empCode?'selected':''}>${e.name}</option>`)).join('');
+  const projOpts = ['<option value="">All projects</option>'].concat(allProjects().map(pr=>`<option value="${pr.code}" data-sub="${String(pr.name||'').replace(/"/g,'&quot;')}" ${String(p.proj)===String(pr.code)?'selected':''}>${pr.code}</option>`)).join('');
   const cellFor=(r,c)=>{
     switch(c.key){
       case 'date': return `<td>${fmtDate(r.date)}</td>`;
@@ -2341,8 +2512,8 @@ function renderTimesheets(){
   const totalCost = rows.reduce((s,r)=>s+Number(r.hours)*Number(r.rate),0);
   const html = `
     <div class="toolbar">
-      <div class="field"><label>Employee</label><select onchange="window.__tsPend.emp=this.value;">${empOpts}</select></div>
-      <div class="field"><label>Project</label><select onchange="window.__tsPend.proj=this.value;">${projOpts}</select></div>
+      <div class="field"><label>Employee</label><select data-search onchange="window.__tsPend.emp=this.value;">${empOpts}</select></div>
+      <div class="field"><label>Project</label><select data-search onchange="window.__tsPend.proj=this.value;">${projOpts}</select></div>
       <div class="field"><label>From</label><input type="date" value="${p.from}" onchange="window.__tsPend.from=this.value;"></div>
       <div class="field"><label>To</label><input type="date" value="${p.to}" onchange="window.__tsPend.to=this.value;"></div>
       <button class="btn btn-primary" onclick="applyTsSearch()">🔍 Search</button>
@@ -2399,7 +2570,7 @@ function exportTsExcel(){
 let entryDraft = {}; // in-memory edits: key(empCode_date) -> {p1..p6,h1..h6}
 function draftKey(empCode){ return empCode + '_' + window.__entryDate; }
 function permittedProjects(){
-  return DB.projects.filter(p=>{
+  return allProjects().filter(p=>{
     if(p.status!=='Open') return false;
     if(isAdmin()) return true;
     const allowed = p.allowedDepts||[];
@@ -2410,7 +2581,7 @@ function entryEmployees(){
   /* Everyone with Daily Entry access sees ALL entries, exactly like admin.
      What each user can DO (save draft / submit / delete / reopen) and which
      columns they see is controlled by the admin in Permissions. */
-  let list = DB.employees.filter(e=>e.status==='Active');
+  let list = allEmployees().filter(e=>e.status==='Active');
   const q = (window.__deF||'').toLowerCase();
   if(q) list = list.filter(e=> String(e.empCode).toLowerCase().includes(q) || String(e.name||'').toLowerCase().includes(q) || String(e.designation||'').toLowerCase().includes(q));
   return list.slice().sort((a,b)=>String(a.empCode).localeCompare(String(b.empCode)));
@@ -2449,11 +2620,11 @@ function renderEntry(){
     : (DRAFT_PAGE.failedDate===deDate ? `<div style="font-size:12.5px;color:var(--warn-ink);background:var(--warn-bg);padding:8px 10px;border-radius:8px;margin:4px 0 10px;">⚠️ Could not load the saved entries for ${fmtDate(deDate)} — check your internet connection. <button class="btn btn-sm btn-ghost" onclick="DRAFT_PAGE.failedDate=null; renderApp();">↻ Retry</button></div>` : '');
   const emps = entryEmployees();
   const projs = permittedProjects();
-  const projDL = `<datalist id="projDL">${projs.map(p=>`<option value="${p.code}">${p.name}</option>`).join('')}</datalist>`;
+  const projDL = `<datalist id="projDL">${projs.map(p=>`<option value="${p.code}">${p.name}${p.fromShone?' · SHONE':''}</option>`).join('')}</datalist>`;
   const canDraft = can('save_draft','dailyentry') || can('add','dailyentry');
   const canSub = can('submit','dailyentry');
   const canDel = can('delete','dailyentry');
-  const canReopen = isAdmin() || can('reopen','dailyentry');
+  const canReopen = can('reopen','dailyentry');
 
   window.__deExport = emps.map(e=>{
     const v = rowValues(e); const o = {};
@@ -2485,7 +2656,7 @@ function renderEntry(){
       : status==='Draft' ? '<span class="badge-pill" style="background:var(--warn-bg);color:var(--warn-ink);">Draft</span>'
       : '<span class="badge-pill pill-inactive">—</span>';
     const reopenBtn = (status==='Submitted' && canReopen) ? `<button class="btn btn-sm btn-ghost" onclick="reopenEntry('${key}')">↩ Reopen (Edit)</button>` : '';
-    const delDraftBtn = (status==='Draft' && (canDel||isAdmin())) ? `<button class="btn btn-sm btn-danger" title="Delete this draft" onclick="deleteOneDraft('${key}','${e.empCode}')">🗑</button>` : '';
+    const delDraftBtn = (status==='Draft' && canDel) ? `<button class="btn btn-sm btn-danger" title="Delete this draft" onclick="deleteOneDraft('${key}','${e.empCode}')">🗑</button>` : '';
     return `<tr>
       ${colAllowed('dailyentry','empCode')?`<td class="static grid-code">${e.empCode}</td>`:''}
       ${colAllowed('dailyentry','designation')?`<td class="static">${e.designation||''}</td>`:''}
@@ -2505,7 +2676,7 @@ function renderEntry(){
         <input id="de_q" class="colf" data-pg="de" data-k="q" value="${window.__deP||''}" placeholder="e.g. SHP2106 or Welder" onchange="window.__deP=this.value;"></div>
       <button class="btn btn-primary" onclick="window.__deP=document.getElementById('de_q').value; window.__deF=window.__deP; renderApp();">🔍 Search</button>
       <button class="btn btn-ghost" onclick="window.__deP=''; window.__deF=''; renderApp();">✖ Clear</button>
-      ${(isAdmin()||can('export','dailyentry'))?'<button class="btn btn-ghost" onclick="exportEntryExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('export','dailyentry'))?'<button class="btn btn-ghost" onclick="exportEntryExcel()">⬇️ Export (Excel)</button>':''}
       ${canDraft?'<button class="btn btn-ghost" onclick="saveDraftAll()">💾 Save Draft</button>':''}
       ${canSub?'<button class="btn btn-primary" onclick="confirmSubmit()">✅ Submit</button>':''}
       ${canDel?'<button class="btn btn-danger" onclick="deleteDrafts()">🗑️ Delete Draft</button>':''}
@@ -2803,7 +2974,7 @@ async function submitEntries(){
   } finally { window.__deSubmitting = false; }
 }
 async function reopenEntry(key){
-  if(!(isAdmin() || can('reopen','dailyentry'))){ toast('Only an Admin can reopen a submitted entry', true); return; }
+  if(!(can('reopen','dailyentry'))){ toast('Only an Admin can reopen a submitted entry', true); return; }
   const d = DB.drafts[key];
   if(!d || d.status!=='Submitted') return;
   const month = monthOf(key.slice(-10));
@@ -2847,7 +3018,7 @@ async function deleteDrafts(){
    ========================================================= */
 function renderDropdown(){
   if(!pageAllowed('dropdown')){ VIEW='dashboard'; return renderDashboard(); }
-  const editable = isAdmin();
+  const editable = isAdmin() && shoneDecision('dropdown','edit')!==false;
   const colHtml = (name, items, derived)=>`
     <div class="dd-col">
       <div class="dd-col-head">${name}${derived?'<span class="tag">auto</span>':''}</div>
@@ -2862,14 +3033,14 @@ function renderDropdown(){
   const html = `
     ${editable?'<div class="toolbar">'+bulkBtn('dropdown')+'<span style="font-size:12px;color:var(--muted);align-self:center;">Upload an Excel file laid out like the Dropdown sheet — one list per column.</span></div>':''}
     <div class="card"><h2>🔽 Dropdown Master <span class="badge">controls all dropdowns in the dashboard</span></h2>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Changes here reflect automatically wherever these dropdowns are used — Designation & Status on Employees, Open/Closed on Projects. <b>Managers</b> and <b>ProjectID</b> are auto-generated from Employees (Is Manager = Yes, Active) and open Projects, exactly like the Excel macro.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Changes here reflect automatically wherever these dropdowns are used — Designation & Status on Employees, Open/Closed on Projects. <b>Managers</b> and <b>ProjectID</b> are auto-generated from Employees (Is Manager = Yes, Active) and open Projects, exactly like the Excel macro.${SD()?' Open projects mapped to the Production Timesheet in the <b>SHONE Project Master</b> are included in ProjectID.':''}</p>
       <div class="dd-grid">
         ${listNames.map(n=>colHtml(n, DB.dropdowns[n]||[], false)).join('')}
         ${colAllowed('dropdown','Managers')?colHtml('Managers', managers, true):''}
         ${colAllowed('dropdown','ProjectID')?colHtml('ProjectID', projIds, true):''}
       </div>
     </div>`;
-  const ddBar = (isAdmin()||can('export','dropdown'))? '<div class="toolbar"><button class="btn btn-ghost" onclick="exportDropdownExcel()">⬇️ Export (Excel)</button></div>' : '';
+  const ddBar = (can('export','dropdown'))? '<div class="toolbar"><button class="btn btn-ghost" onclick="exportDropdownExcel()">⬇️ Export (Excel)</button></div>' : '';
   renderShell(ddBar + html, '🔽 Dropdown', 'Central list management — mirrors the Excel Dropdown sheet');
 }
 async function addDropdownItem(listName){
@@ -2906,13 +3077,13 @@ function barChart(data){
 }
 function renderRptProject(){
   if(!pageAllowed('rpt_project')){ VIEW='dashboard'; return renderDashboard(); }
-  if(window.__rcProj===undefined) window.__rcProj = DB.projects[0]?.code||'';
+  if(window.__rcProj===undefined) window.__rcProj = allProjects()[0]?.code||'';
   if(window.__rcFrom===undefined) window.__rcFrom='';
   if(window.__rcTo===undefined) window.__rcTo='';
   if(!window.__rcPend) window.__rcPend = {proj:window.__rcProj, from:window.__rcFrom, to:window.__rcTo};
   const rp = window.__rcPend;
   const projOpts = ['<option value="" '+(rp.proj===''?'selected':'')+'>🌐 All projects (combined)</option>']
-    .concat(DB.projects.map(p=>`<option value="${p.code}" ${String(rp.proj)===String(p.code)?'selected':''}>${p.code} — ${p.name}</option>`)).join('');
+    .concat(allProjects().map(p=>`<option value="${p.code}" ${String(rp.proj)===String(p.code)?'selected':''}>${p.code} — ${p.name}</option>`)).join('');
   let list = [], missingNote = '';
   if(true){ /* SUMMARY PATH FOR ALL USERS — every user with this page generates the
        company-wide report like admin; the admin controls what is visible via
@@ -2942,7 +3113,7 @@ function renderRptProject(){
         t[0]+=Number(r.hours||0); t[1]+=Number(r.hours||0)*Number(r.rate||0);
       });
     });
-    const em = new Map(DB.employees.map(e=>[String(e.empCode), e]));
+    const em = new Map(allEmployees().map(e=>[String(e.empCode), e]));
     list = Object.entries(acc).map(([empId,[h,c]])=>{
       const e = em.get(String(empId));
       return {empId, name:e?e.name:empId, designation:e?e.designation:'—', rate:h?c/h:0, hrs:+h.toFixed(2), cost:+c.toFixed(2)};
@@ -2966,11 +3137,11 @@ function renderRptProject(){
   window.__rcExport = list.map(x=> Object.fromEntries(visibleCols('rpt_project').map(c=> [c.label, (c.key==='rate'||c.key==='cost')? +Number(x[c.key]).toFixed(2) : x[c.key]] )));
   const html = `
     <div class="toolbar">
-      <div class="field"><label>Project ID</label><select onchange="window.__rcPend.proj=this.value;">${projOpts||'<option>— no projects —</option>'}</select></div>
+      <div class="field"><label>Project ID</label><select data-search onchange="window.__rcPend.proj=this.value;">${projOpts||'<option>— no projects —</option>'}</select></div>
       <div class="field"><label>From (optional)</label><input type="date" value="${rp.from}" onchange="window.__rcPend.from=this.value;"></div>
       <div class="field"><label>To (optional)</label><input type="date" value="${rp.to}" onchange="window.__rcPend.to=this.value;"></div>
       <button class="btn btn-primary" onclick="window.__rcProj=window.__rcPend.proj; window.__rcFrom=window.__rcPend.from; window.__rcTo=window.__rcPend.to; renderApp();">🔍 Search</button>
-      ${(isAdmin()||can('export','rpt_project'))?'<button class="btn btn-ghost" onclick="exportRptProjectExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('export','rpt_project'))?'<button class="btn btn-ghost" onclick="exportRptProjectExcel()">⬇️ Export (Excel)</button>':''}
     </div>
     ${missingNote}
     ${(()=>{
@@ -3042,11 +3213,11 @@ function renderRptEmployee(){
   window.__erExport = list.map(x=> Object.fromEntries(visibleCols('rpt_employee').map(c=> [c.label, x[c.key]] )));
   const html = `
     <div class="toolbar">
-      <div class="field"><label>Employee</label><select onchange="window.__erPend.emp=this.value;">${empOpts||'<option>— no employees —</option>'}</select></div>
+      <div class="field"><label>Employee</label><select data-search onchange="window.__erPend.emp=this.value;">${empOpts||'<option>— no employees —</option>'}</select></div>
       <div class="field"><label>Start Date</label><input type="date" value="${ep.from}" onchange="window.__erPend.from=this.value;"></div>
       <div class="field"><label>End Date</label><input type="date" value="${ep.to}" onchange="window.__erPend.to=this.value;"></div>
       <button class="btn btn-primary" onclick="window.__erEmp=window.__erPend.emp; window.__erFrom=window.__erPend.from; window.__erTo=window.__erPend.to; renderApp();">🔍 Search</button>
-      ${(isAdmin()||can('export','rpt_employee'))?'<button class="btn btn-ghost" onclick="exportRptEmployeeExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('export','rpt_employee'))?'<button class="btn btn-ghost" onclick="exportRptEmployeeExcel()">⬇️ Export (Excel)</button>':''}
     </div>
     ${missingNote}
     <div class="kpi-row">
@@ -3107,12 +3278,12 @@ function renderRptDesignation(){
   window.__drExport = list.map(x=> Object.fromEntries(visibleCols('rpt_designation').map(c=> [c.label, x[c.key]] )));
   const html = `
     <div class="toolbar">
-      <div class="field"><label>Designation</label><select onchange="window.__drPend.des=this.value;">${desOpts}</select></div>
+      <div class="field"><label>Designation</label><select data-search onchange="window.__drPend.des=this.value;">${desOpts}</select></div>
       <div class="field"><label>Start Date</label><input type="date" value="${dp.from}" onchange="window.__drPend.from=this.value;"></div>
       <div class="field"><label>End Date</label><input type="date" value="${dp.to}" onchange="window.__drPend.to=this.value;"></div>
       <button class="btn btn-primary" onclick="window.__drDes=window.__drPend.des; window.__drFrom=window.__drPend.from; window.__drTo=window.__drPend.to; renderApp();">🔍 Search</button>
       <div class="field"><label>&nbsp;</label><span style="font-size:11px;color:var(--muted);align-self:center;">Hours are man-hours: all employees of this designation added together (10 welders × 12 hrs = 120 hrs in one day)</span></div>
-      ${(isAdmin()||can('export','rpt_designation'))?'<button class="btn btn-ghost" onclick="exportRptDesignationExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('export','rpt_designation'))?'<button class="btn btn-ghost" onclick="exportRptDesignationExcel()">⬇️ Export (Excel)</button>':''}
     </div>
     ${missingNote}
     <div class="kpi-row">
@@ -3177,7 +3348,7 @@ function renderRptSummary(){
       <div class="field"><label>From (optional)</label><input type="date" value="${pp.from}" onchange="window.__psPend.from=this.value;"></div>
       <div class="field"><label>To (optional)</label><input type="date" value="${pp.to}" onchange="window.__psPend.to=this.value;"></div>
       <button class="btn btn-primary" onclick="window.__psFrom=window.__psPend.from; window.__psTo=window.__psPend.to; renderApp();">🔍 Search</button>
-      ${(isAdmin()||can('export','rpt_summary'))?'<button class="btn btn-ghost" onclick="exportRptSummaryExcel()">⬇️ Export (Excel)</button>':''}
+      ${(can('export','rpt_summary'))?'<button class="btn btn-ghost" onclick="exportRptSummaryExcel()">⬇️ Export (Excel)</button>':''}
       <div class="field"><label>&nbsp;</label><span style="font-size:11px;color:var(--muted);align-self:center;">Leave both dates blank + Search = all time</span></div>
     </div>
     ${missingNote}
@@ -3206,7 +3377,8 @@ function exportRptSummaryExcel(){ exportRowsExcel('Project_Summary_'+((window.__
    DEPARTMENTS & ACCESS (admin) — page + column permissions
    ========================================================= */
 function renderDepartments(){
-  if(!isAdmin()){ VIEW='dashboard'; return renderDashboard(); }
+  if(!isAdmin() || shoneDecision('departments','view')===false){ VIEW='dashboard'; return renderDashboard(); }
+  const permLocal = shoneLocal('permissions');
   const rows = DB.departments.map(d=>{
     const pages = (d.pages||[]).map(pid=>{ const p=PAGES.find(x=>x.id===pid); return p? p.icon+' '+p.label : pid; }).join(', ') || '— none —';
     const colRestrictions = Object.keys(d.cols||{}).length;
@@ -3215,7 +3387,7 @@ function renderDepartments(){
       <td style="white-space:normal;max-width:380px;">${pages}</td>
       <td>${colRestrictions? colRestrictions+' page(s) restricted' : 'All columns'}</td>
       <td>${DB.users.filter(u=>u.departmentId===d.id).length} user(s)</td>
-      <td><button class="btn btn-sm btn-ghost" onclick="openPermsModal('dept','${d.id}')">Permissions</button>
+      <td>${permLocal?`<button class="btn btn-sm btn-ghost" onclick="openPermsModal('dept','${d.id}')">Permissions</button>`:`<button class="btn btn-sm btn-ghost" onclick="openPermsModal('dept','${d.id}')">View permissions</button>`}
           <button class="btn btn-sm btn-ghost" onclick="renameDept('${d.id}')">Rename</button>
           <button class="btn btn-sm btn-danger" onclick="deleteDept('${d.id}')">Delete</button></td>
     </tr>`;
@@ -3225,6 +3397,7 @@ function renderDepartments(){
       <div class="field"><label>New department name</label><input id="newDeptName" placeholder="e.g. Fabrication"></div>
       <button class="btn btn-primary" onclick="addDept()">+ Add Department</button>
     </div>
+    ${permLocal?'':shoneLock('Page, column and action permissions are set in SHONE → Permission Management. The permissions saved here remain as they are (read-only).')}
     <div class="card"><h2>🏢 Departments & Access <span class="badge">${DB.departments.length}</span></h2>
       <div class="table-scroll"><table>
         <thead><tr><th>Department</th><th>Pages Allowed</th><th>Column Access</th><th>Users</th><th></th></tr></thead>
@@ -3268,7 +3441,8 @@ async function deleteDept(id){
    record-level data scope, login history.
    ========================================================= */
 function renderUsers(){
-  if(!isAdmin()){ VIEW='dashboard'; return renderDashboard(); }
+  if(!isAdmin() || shoneDecision('users','view')===false){ VIEW='dashboard'; return renderDashboard(); }
+  const usersLocalU = shoneLocal('users'), permLocalU = shoneLocal('permissions');
   const selU = selSet('users');
   window.__pageIds = window.__pageIds||{}; window.__pageIds['users'] = DB.users.map(u=>u.uid);
   const rows = DB.users.map(u=>{
@@ -3277,7 +3451,7 @@ function renderUsers(){
       : st==='Suspended' ? '<span class="badge-pill" style="background:var(--warn-bg);color:var(--warn-ink);">Suspended</span>'
       : '<span class="badge-pill pill-inactive">Deactivated</span>';
     return `<tr>
-      <td><input type="checkbox" ${selU.has(u.uid)?'checked':''} onchange="toggleSel('users','${u.uid}',this.checked)"></td>
+      <td>${usersLocalU?`<input type="checkbox" ${selU.has(u.uid)?'checked':''} onchange="toggleSel('users','${u.uid}',this.checked)">`:''}</td>
       <td style="font-weight:700;">${u.name}</td>
       <td>${u.email||'—'}</td>
       <td class="grid-code">${u.empId||'—'}</td>
@@ -3287,19 +3461,21 @@ function renderUsers(){
       <td>${stPill}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-sm btn-ghost" onclick="openUserModal('${u.uid}')">Edit</button>
-        ${u.role!=='admin'?`<button class="btn btn-sm btn-ghost" onclick="openPermsModal('user','${u.uid}')">Permissions</button>`:''}
+        ${u.role!=='admin'?`<button class="btn btn-sm btn-ghost" onclick="openPermsModal('user','${u.uid}')">${permLocalU?'Permissions':'View permissions'}</button>`:''}
         <button class="btn btn-sm btn-ghost" onclick="resetUserPassword('${u.uid}')">Reset PW</button>
         <button class="btn btn-sm btn-ghost" onclick="showUserHistory('${u.uid}')">History</button>
-        ${DB.users.filter(x=>x.role==='admin').length>1 || u.role!=='admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteUser('${u.uid}')">Remove</button>`:''}
+        ${usersLocalU && (DB.users.filter(x=>x.role==='admin').length>1 || u.role!=='admin') ? `<button class="btn btn-sm btn-danger" onclick="deleteUser('${u.uid}')">Remove</button>`:''}
       </td>
     </tr>`;
   }).join('');
   const html2 = `
-    <div class="card"><h2>➕ Create User <span class="badge">admin-only — no public sign-up exists</span></h2>
+    ${usersLocalU?'':shoneLock('New dashboard logins are created in SHONE → User Master (Add user) and reach this dashboard through SHONE. Existing logins keep working; name, Employee ID link, password reset and history stay available here.')}
+    ${permLocalU?'':shoneLock('Roles, data scope and per-user permissions are set in SHONE → Permission Management; the values saved here are read-only.')}
+    <div class="card" ${usersLocalU?'':'style="display:none"'}><h2>➕ Create User <span class="badge">admin-only — no public sign-up exists</span></h2>
       ${DB.departments.length===0? '<div class="scope-banner">💡 Create at least one Department first (Department Management) to assign users properly.</div>':''}
       <div class="toolbar" style="margin-bottom:0;">
         <div class="field"><label>Employee ID (link)</label><input id="u_empId" list="empDL" placeholder="e.g. SHP2101">
-          <datalist id="empDL">${DB.employees.map(e=>`<option value="${e.empCode}">${e.name}</option>`).join('')}</datalist></div>
+          <datalist id="empDL">${allEmployees().map(e=>`<option value="${e.empCode}">${e.name}</option>`).join('')}</datalist></div>
         <div class="field"><label>Name</label><input id="u_name" placeholder="Full name"></div>
         <div class="field"><label>Email (login ID)</label><input id="u_email" type="email" placeholder="name@company.com"></div>
         <div class="field"><label>Temporary password</label><input id="u_pw" type="text" placeholder="min 6 chars"></div>
@@ -3314,9 +3490,9 @@ function renderUsers(){
     </div>
     <div class="card"><h2>🔑 User Management <span class="badge">${DB.users.length}</span>
       <button class="btn btn-sm btn-ghost" style="margin-left:10px;" onclick="exportUsersExcel()">⬇️ Export (Excel)</button>
-      ${selSet('users').size?`<button class="btn btn-sm btn-danger" style="margin-left:10px;" onclick="bulkDeleteUsers()">🗑 Delete Selected (${selSet('users').size})</button>`:''}</h2>
+      ${usersLocalU && selSet('users').size?`<button class="btn btn-sm btn-danger" style="margin-left:10px;" onclick="bulkDeleteUsers()">🗑 Delete Selected (${selSet('users').size})</button>`:''}</h2>
       <div class="table-scroll"><table>
-        <thead><tr><th><input type="checkbox" onchange="selectAllPage('users',this.checked)"></th><th>Name</th><th>Email</th><th>Emp ID</th><th>Role</th><th>Department</th><th>Scope</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>${usersLocalU?`<input type="checkbox" onchange="selectAllPage('users',this.checked)">`:''}</th><th>Name</th><th>Email</th><th>Emp ID</th><th>Role</th><th>Department</th><th>Scope</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
     </div>`;
   renderShell(html2, '🔑 User Management', 'Create accounts, assign departments, roles, scopes, and per-user permissions');
@@ -3336,6 +3512,7 @@ async function createAuthAccount(email, pw){
   }
 }
 async function addUser(){
+  if(!shoneLocal('users')){ shoneBlocked('Creating dashboard logins'); return; }
   const empId = document.getElementById('u_empId').value.trim();
   const name = document.getElementById('u_name').value.trim();
   const email = document.getElementById('u_email').value.trim().toLowerCase();
@@ -3347,7 +3524,7 @@ async function addUser(){
   if(pw.length<6){ toast('Temporary password must be at least 6 characters', true); return; }
   if(DB.users.find(x=>String(x.email||'').toLowerCase()===email)){ toast('A user with this email already exists', true); return; }
   if(role==='user' && !dept){ toast('Assign a department to this user', true); return; }
-  const emp = DB.employees.find(e=>e.empCode===empId);
+  const emp = allEmployees().find(e=>e.empCode===empId);
   const res = await createAuthAccount(email, pw);
   if(!res.ok){ toast('Could not create login: '+res.msg, true); return; }
   DB.users.push({uid:'U'+Date.now(), name, email, empId: empId||null,
@@ -3362,17 +3539,19 @@ async function addUser(){
 }
 function openUserModal(uid){
   const u = DB.users.find(x=>x.uid===uid);
+  const roleLock = !shoneLocal('permissions') ? 'disabled title="Centrally managed from SHONE"' : '';
   const deptOpts = ['<option value="">—</option>'].concat(DB.departments.map(d=>`<option value="${d.id}" ${u.departmentId===d.id?'selected':''}>${d.name}</option>`)).join('');
   document.getElementById('modalRoot')?.remove();
   const div = document.createElement('div'); div.id='modalRoot';
   div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
     <div class="modal">
       <h3>Edit User — ${u.name}</h3>
+      ${roleLock?shoneLock('Role, department and data scope are set in SHONE → Permission Management.'):''}
       <div class="field"><label>Name</label><input id="eu_name" value="${u.name}"></div>
       <div class="field"><label>Employee ID (link)</label><input id="eu_empId" list="empDL" value="${u.empId||''}"></div>
-      <div class="field"><label>Role</label><select id="eu_role"><option value="user" ${u.role==='user'?'selected':''}>Department User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="director" ${u.role==='director'?'selected':''}>Director (full access)</option></select></div>
-      <div class="field"><label>Department</label><select id="eu_dept">${deptOpts}</select></div>
-      <div class="field"><label>Data scope</label><select id="eu_scope">
+      <div class="field"><label>Role</label><select id="eu_role" ${roleLock}><option value="user" ${u.role==='user'?'selected':''}>Department User</option><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="director" ${u.role==='director'?'selected':''}>Director (full access)</option></select></div>
+      <div class="field"><label>Department</label><select id="eu_dept" data-search ${roleLock}>${deptOpts}</select></div>
+      <div class="field"><label>Data scope</label><select id="eu_scope" ${roleLock}>
         ${['own','team','department','all'].map(s=>`<option value="${s}" ${(u.scope||'own')===s?'selected':''}>${s}</option>`).join('')}</select></div>
       <div class="field"><label>Account status</label><select id="eu_status">
         ${['Active','Suspended','Deactivated'].map(s=>`<option ${(u.status||'Active')===s?'selected':''}>${s}</option>`).join('')}</select></div>
@@ -3382,17 +3561,20 @@ function openUserModal(uid){
       </div>
     </div></div>`;
   document.body.appendChild(div);
+  shoneEnhanceSelects(div);
 }
 async function saveUser(uid){
   const u = DB.users.find(x=>x.uid===uid);
   const before = {...u};
   u.name = document.getElementById('eu_name').value.trim() || u.name;
   u.empId = document.getElementById('eu_empId').value.trim() || null;
-  u.role = document.getElementById('eu_role').value;
-  u.departmentId = u.role==='user' ? (document.getElementById('eu_dept').value||null) : null;
-  u.scope = u.role!=='user' ? 'all' : document.getElementById('eu_scope').value;
+  if(shoneLocal('permissions')){               /* role / department / scope are permission settings — locked once SHONE manages permissions */
+    u.role = document.getElementById('eu_role').value;
+    u.departmentId = u.role==='user' ? (document.getElementById('eu_dept').value||null) : null;
+    u.scope = u.role!=='user' ? 'all' : document.getElementById('eu_scope').value;
+  }
   u.status = document.getElementById('eu_status').value;
-  const emp = DB.employees.find(e=>e.empCode===u.empId);
+  const emp = allEmployees().find(e=>e.empCode===u.empId);
   if(emp){ u.designation = emp.designation; u.managerId = emp.managerId; }
   await save('users');
   const ch = diffChanges(before, u, ['name','empId','role','departmentId','scope','status']);
@@ -3436,6 +3618,7 @@ function showUserHistory(uid){
   document.body.appendChild(div);
 }
 async function deleteUser(uid){
+  if(!shoneLocal('users')){ shoneBlocked('Removing dashboard logins'); return; }
   const u = DB.users.find(x=>x.uid===uid);
   if((u.role==='admin'||u.role==='director') && DB.users.filter(x=>x.role==='admin'||x.role==='director').length<=1){ toast('Cannot remove the last Admin/Director', true); return; }
   DB.users = DB.users.filter(x=>x.uid!==uid);
@@ -3480,16 +3663,19 @@ function openPermsModal(kind, id){
   div.innerHTML = `<div class="modal-bg" onclick="if(event.target===this) this.remove()">
     <div class="modal" style="max-width:720px;">
       <h3>🔐 ${kind==='dept'?'Department':'Per-User Override'} Permissions — ${target.name}</h3>
+      ${shoneLocal('permissions')?'':shoneLock('These permissions are read-only here — set them in SHONE → Permission Management (Production Timesheet).')}
       <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">No View tick = the page disappears from this ${kind==='dept'?"department's":"user's"} menu and cannot be opened. ${kind==='user'?'Per-user settings override the department defaults.':''} Hidden columns vanish from tables AND exports.</div>
       ${pageRows}
       <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">Cancel</button>
-        <button class="btn btn-primary" onclick="savePerms('${kind}','${id}')">Save Permissions</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('modalRoot')?.remove()">${shoneLocal('permissions')?'Cancel':'Close'}</button>
+        ${shoneLocal('permissions')?`<button class="btn btn-primary" onclick="savePerms('${kind}','${id}')">Save Permissions</button>`:''}
       </div>
     </div></div>`;
   document.body.appendChild(div);
+  if(!shoneLocal('permissions')) div.querySelectorAll('input[data-pg],select[data-cpg]').forEach(el=>{ el.disabled = true; });
 }
 async function savePerms(kind, id){
+  if(!shoneLocal('permissions')){ shoneBlocked('Permission management'); return; }
   const target = kind==='dept' ? DB.departments.find(d=>d.id===id) : DB.users.find(u=>u.uid===id);
   const pagePerms = {}, colPerms = {};
   PAGES.forEach(p=>{
@@ -3525,7 +3711,7 @@ function renderActivity(){
       <div><div>${colAllowed('activity','action')?`<b>${a.action}</b>`:''}${colAllowed('activity','detail')?`${colAllowed('activity','action')?' — ':''}${a.detail}`:''}${(colAllowed('activity','page')&&a.page)?` <span class="tag">${a.page}</span>`:''}</div>
       <div class="actlog-meta">${[colAllowed('activity','user')?a.user:null, (colAllowed('activity','role')&&a.role)?'('+a.role+')':null, colAllowed('activity','ts')?new Date(a.ts).toLocaleString('en-IN'):null].filter(Boolean).join(' · ')}</div></div>
     </div>`).join('') : `<div class="empty-state"><div class="ic">🕒</div>No activity recorded yet.</div>`;
-  const toolbar = (isAdmin()||can('export','activity'))? `<div class="toolbar"><button class="btn btn-ghost" onclick="exportActivityExcel()">⬇️ Export Activity Log (Excel)</button></div>`:'';
+  const toolbar = (can('export','activity'))? `<div class="toolbar"><button class="btn btn-ghost" onclick="exportActivityExcel()">⬇️ Export Activity Log (Excel)</button></div>`:'';
   renderShell(`${toolbar}<div class="card"><h2>🕒 Activity Log <span class="badge">${log.length} entries</span></h2>${rows}</div>`,
     '🕒 Activity Log', 'Who changed what, old → new values — included in every backup');
 }
